@@ -1,0 +1,62 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "data"
+    },
+    {
+      "action": "mkdir",
+      "path": "data/posts"
+    },
+    {
+      "action": "mkdir",
+      "path": "data/analysis"
+    },
+    {
+      "action": "mkdir",
+      "path": "packages/storage/src"
+    },
+    {
+      "action": "write_file",
+      "path": "package.json",
+      "backup": true,
+      "content": "{\n  \"name\": \"truth-lens\",\n  \"private\": true,\n  \"version\": \"0.1.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"api\": \"node apps/api/src/server.ts\",\n    \"worker\": \"node apps/worker/src/worker.ts\",\n    \"run\": \"node apps/worker/src/worker.ts && node apps/api/src/server.ts\"\n  }\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/storage/src/storage.js",
+      "backup": false,
+      "content": "import fs from 'node:fs';\nimport path from 'node:path';\n\nconst ROOT = path.resolve(process.env.HOME || '.', 'projects', 'truth-lens');\nconst DATA_DIR = path.join(ROOT, 'data');\nconst POSTS_DIR = path.join(DATA_DIR, 'posts');\nconst ANALYSIS_DIR = path.join(DATA_DIR, 'analysis');\n\nfunction ensureDir(dir) {\n  fs.mkdirSync(dir, { recursive: true });\n}\n\nfunction readJson(file) {\n  return JSON.parse(fs.readFileSync(file, 'utf8'));\n}\n\nfunction writeJson(file, value) {\n  fs.writeFileSync(file, JSON.stringify(value, null, 2));\n}\n\nexport function savePost(post) {\n  ensureDir(POSTS_DIR);\n  const file = path.join(POSTS_DIR, `${post.id}.json`);\n  writeJson(file, post);\n}\n\nexport function getPost(id) {\n  const file = path.join(POSTS_DIR, `${id}.json`);\n  if (!fs.existsSync(file)) return null;\n  return readJson(file);\n}\n\nexport function listPosts() {\n  ensureDir(POSTS_DIR);\n  return fs.readdirSync(POSTS_DIR)\n    .filter((f) => f.endsWith('.json'))\n    .sort()\n    .map((f) => readJson(path.join(POSTS_DIR, f)));\n}\n\nexport function saveAnalysis(result) {\n  ensureDir(ANALYSIS_DIR);\n  const file = path.join(ANALYSIS_DIR, `${result.id}.json`);\n  writeJson(file, result);\n}\n\nexport function getAnalysis(id) {\n  const file = path.join(ANALYSIS_DIR, `${id}.json`);\n  if (!fs.existsSync(file)) return null;\n  return readJson(file);\n}\n\nexport function listAnalysis() {\n  ensureDir(ANALYSIS_DIR);\n  return fs.readdirSync(ANALYSIS_DIR)\n    .filter((f) => f.endsWith('.json'))\n    .sort()\n    .map((f) => readJson(path.join(ANALYSIS_DIR, f)));\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/reddit/src/fetch.ts",
+      "backup": true,
+      "content": "export async function fetchSubredditNew(subreddit) {\n  const now = new Date().toISOString();\n  return [\n    {\n      id: `demo-${subreddit}-1`,\n      subreddit,\n      author: 'demo_user_alpha',\n      title: `A discussion thread in r/${subreddit}`,\n      body: `I think people are overreacting. We should take a balanced view and consider all sides carefully. This may be more coordinated than it seems.`,\n      created_at: now,\n      permalink: `/r/${subreddit}/comments/demo-${subreddit}-1`\n    },\n    {\n      id: `demo-${subreddit}-2`,\n      subreddit,\n      author: 'demo_user_beta',\n      title: `Another thread in r/${subreddit}`,\n      body: `Everyone knows this is manipulated. Clearly the whole thing is compromised and nobody can trust it anymore.`,\n      created_at: now,\n      permalink: `/r/${subreddit}/comments/demo-${subreddit}-2`\n    }\n  ];\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/features/src/index.js",
+      "backup": false,
+      "content": "const CERTAINTY_WORDS = ['clearly', 'obviously', 'definitely', 'undoubtedly', 'everyone knows'];\nconst HEDGE_WORDS = ['maybe', 'perhaps', 'might', 'seems', 'likely'];\nconst EMPATHY_WORDS = ['i understand', 'that must be hard', 'it makes sense'];\nconst CONSENSUS_WORDS = ['everyone knows', 'nobody can trust', 'the whole thing', 'all sides'];\n\nfunction countMatches(text, patterns) {\n  const lower = text.toLowerCase();\n  return patterns.reduce((sum, p) => sum + (lower.includes(p) ? 1 : 0), 0);\n}\n\nfunction tokenize(text) {\n  return text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean);\n}\n\nexport function extractContentFeatures(post) {\n  const text = `${post.title || ''} ${post.body || ''}`.trim();\n  const tokens = tokenize(text);\n  const unique = new Set(tokens);\n  const sentences = text.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean);\n  const sentenceLengths = sentences.map((s) => tokenize(s).length);\n  const meanSentenceLength = sentenceLengths.length\n    ? sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length\n    : 0;\n\n  return {\n    id: post.id,\n    subreddit: post.subreddit,\n    token_count: tokens.length,\n    sentence_count: sentences.length,\n    lexical_diversity: tokens.length ? unique.size / tokens.length : 0,\n    certainty_marker_count: countMatches(text, CERTAINTY_WORDS),\n    hedging_marker_count: countMatches(text, HEDGE_WORDS),\n    empathy_marker_count: countMatches(text, EMPATHY_WORDS),\n    consensus_marker_count: countMatches(text, CONSENSUS_WORDS),\n    self_reference_count: (text.match(/\\b(i|me|my|mine)\\b/gi) || []).length,\n    exclamation_count: (text.match(/!/g) || []).length,\n    question_count: (text.match(/\\?/g) || []).length,\n    mean_sentence_length: Number(meanSentenceLength.toFixed(2)),\n    abstraction_hint: countMatches(text, ['system', 'structure', 'narrative', 'context', 'coordinated', 'manipulated', 'compromised'])\n  };\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/scoring/src/index.js",
+      "backup": false,
+      "content": "export function scoreContent(post, features) {\n  let synthetic = 0;\n  let steering = 0;\n  let coordination = 0;\n  const reasons = [];\n\n  if (features.lexical_diversity < 0.72) {\n    synthetic += 0.12;\n    reasons.push('lower lexical diversity');\n  }\n\n  if (features.mean_sentence_length > 12) {\n    synthetic += 0.1;\n    reasons.push('long polished sentences');\n  }\n\n  if (features.certainty_marker_count > 0) {\n    steering += 0.2;\n    reasons.push('certainty markers');\n  }\n\n  if (features.consensus_marker_count > 0) {\n    steering += 0.25;\n    coordination += 0.15;\n    reasons.push('consensus framing');\n  }\n\n  if (features.abstraction_hint > 1) {\n    synthetic += 0.12;\n    steering += 0.12;\n    reasons.push('abstraction-heavy language');\n  }\n\n  if (features.exclamation_count > 1) {\n    steering += 0.08;\n    reasons.push('elevated emotional punctuation');\n  }\n\n  synthetic = clamp(synthetic + 0.18);\n  steering = clamp(steering + 0.12);\n  coordination = clamp(coordination + 0.1);\n\n  const confidence = clamp(0.25 + (features.token_count > 12 ? 0.2 : 0) + (reasons.length * 0.08));\n\n  return {\n    id: post.id,\n    entity_type: 'content',\n    synthetic_language_likelihood: round2(synthetic),\n    narrative_steering_likelihood: round2(steering),\n    coordination_likelihood: round2(coordination),\n    confidence: round2(confidence),\n    confidence_band: band(confidence),\n    reasons: Array.from(new Set(reasons))\n  };\n}\n\nfunction clamp(n) {\n  return Math.max(0, Math.min(1, n));\n}\n\nfunction round2(n) {\n  return Math.round(n * 100) / 100;\n}\n\nfunction band(n) {\n  if (n < 0.2) return 'very_low';\n  if (n < 0.4) return 'low';\n  if (n < 0.6) return 'moderate';\n  if (n < 0.8) return 'high';\n  return 'very_high';\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "apps/worker/src/worker.ts",
+      "backup": true,
+      "content": "import { fetchSubredditNew } from '../../../packages/reddit/src/fetch.ts';\nimport { extractContentFeatures } from '../../../packages/features/src/index.js';\nimport { scoreContent } from '../../../packages/scoring/src/index.js';\nimport { savePost, saveAnalysis } from '../../../packages/storage/src/storage.js';\n\nconst SUBS = (process.env.PILOT_SUBREDDITS ?? 'technology,news,gaming')\n  .split(',')\n  .map((s) => s.trim())\n  .filter(Boolean);\n\nasync function main() {\n  console.log('Truth Lens worker started');\n  console.log('Pilot subreddits:', SUBS.join(', '));\n\n  for (const subreddit of SUBS) {\n    const posts = await fetchSubredditNew(subreddit);\n\n    for (const post of posts) {\n      savePost(post);\n      const features = extractContentFeatures(post);\n      const score = scoreContent(post, features);\n\n      saveAnalysis({\n        id: post.id,\n        post,\n        features,\n        score,\n        analyzed_at: new Date().toISOString()\n      });\n\n      console.log(`[saved] ${post.id}`);\n      console.log(`[scored] ${post.id} synthetic=${score.synthetic_language_likelihood} steering=${score.narrative_steering_likelihood} coordination=${score.coordination_likelihood}`);\n    }\n  }\n\n  console.log('Worker cycle complete');\n}\n\nmain().catch((err) => {\n  console.error('Worker failed:', err);\n  process.exit(1);\n});\n"
+    },
+    {
+      "action": "write_file",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "content": "import http from 'node:http';\nimport { listPosts, getPost, listAnalysis, getAnalysis } from '../../../packages/storage/src/storage.js';\n\nconst PORT = Number(process.env.API_PORT ?? 3001);\n\nfunction json(res, status, data) {\n  res.writeHead(status, { 'Content-Type': 'application/json' });\n  res.end(JSON.stringify(data, null, 2));\n}\n\nfunction notFound(res) {\n  return json(res, 404, { error: 'not_found' });\n}\n\nfunction summarize(analysisItems) {\n  const total = analysisItems.length;\n  const avgSynthetic = total ? analysisItems.reduce((a, x) => a + (x.score.synthetic_language_likelihood || 0), 0) / total : 0;\n  const avgSteering = total ? analysisItems.reduce((a, x) => a + (x.score.narrative_steering_likelihood || 0), 0) / total : 0;\n  const avgCoordination = total ? analysisItems.reduce((a, x) => a + (x.score.coordination_likelihood || 0), 0) / total : 0;\n\n  const topFlagged = [...analysisItems]\n    .sort((a, b) => (b.score.narrative_steering_likelihood + b.score.coordination_likelihood) - (a.score.narrative_steering_likelihood + a.score.coordination_likelihood))\n    .slice(0, 5)\n    .map((x) => ({\n      id: x.id,\n      subreddit: x.post.subreddit,\n      author: x.post.author,\n      score: x.score,\n      reasons: x.score.reasons\n    }));\n\n  return {\n    total_posts: total,\n    average_synthetic_language_likelihood: round2(avgSynthetic),\n    average_narrative_steering_likelihood: round2(avgSteering),\n    average_coordination_likelihood: round2(avgCoordination),\n    top_flagged: topFlagged\n  };\n}\n\nfunction round2(n) {\n  return Math.round(n * 100) / 100;\n}\n\nconst server = http.createServer((req, res) => {\n  const url = new URL(req.url || '/', 'http://localhost');\n  const parts = url.pathname.split('/').filter(Boolean);\n\n  if (url.pathname === '/health') {\n    return json(res, 200, {\n      status: 'ok',\n      service: 'truth-lens-api',\n      time_utc: new Date().toISOString(),\n      version: 'v1'\n    });\n  }\n\n  if (url.pathname === '/posts') {\n    return json(res, 200, listPosts());\n  }\n\n  if (parts[0] === 'posts' && parts[1]) {\n    const post = getPost(parts[1]);\n    return post ? json(res, 200, post) : notFound(res);\n  }\n\n  if (url.pathname === '/analysis') {\n    return json(res, 200, listAnalysis());\n  }\n\n  if (parts[0] === 'analysis' && parts[1]) {\n    const analysis = getAnalysis(parts[1]);\n    return analysis ? json(res, 200, analysis) : notFound(res);\n  }\n\n  if (url.pathname === '/summary') {\n    return json(res, 200, summarize(listAnalysis()));\n  }\n\n  return json(res, 200, {\n    message: 'truth-lens api',\n    routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary']\n  });\n});\n\nserver.listen(PORT, () => {\n  console.log(`Truth Lens API running on port ${PORT}`);\n});\n"
+    }
+  ]
+}

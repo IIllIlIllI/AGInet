@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+WRITER="$ROOT/tools/write-agent/writer.cjs"
+
+if [ -z "$1" ]; then
+  echo "Usage: tl-write <instructions.json>"
+  exit 1
+fi
+
+cd "$ROOT/tools/write-agent"
+node "$WRITER" "$1"

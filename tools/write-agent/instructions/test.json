@@ -1,0 +1,14 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "tmp"
+    },
+    {
+      "action": "write_file",
+      "path": "tmp/hello.txt",
+      "content": "Hello from the local write agent.\n",
+      "backup": false
+    }
+  ]
+}

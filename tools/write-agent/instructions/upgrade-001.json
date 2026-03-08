@@ -1,0 +1,34 @@
+{
+  "operations": [
+    {
+      "action": "write_file",
+      "path": "package.json",
+      "backup": true,
+      "content": "{\n  \"name\": \"truth-lens\",\n  \"private\": true,\n  \"version\": \"0.1.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"api\": \"node apps/api/src/server.ts\",\n    \"worker\": \"node apps/worker/src/worker.ts\"\n  }\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/config/src/env.ts",
+      "backup": true,
+      "content": "export function getEnv() {\n  return {\n    NODE_ENV: process.env.NODE_ENV ?? \"development\",\n    API_PORT: Number(process.env.API_PORT ?? 3001),\n    DATABASE_URL: process.env.DATABASE_URL ?? \"\",\n    PILOT_SUBREDDITS: (process.env.PILOT_SUBREDDITS ?? \"technology,news,gaming\")\n      .split(\",\")\n      .map((s) => s.trim())\n      .filter(Boolean),\n    ENABLE_PUBLIC_SURFACES: (process.env.ENABLE_PUBLIC_SURFACES ?? \"false\") === \"true\"\n  };\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/reddit/src/fetch.ts",
+      "backup": true,
+      "content": "export async function fetchSubredditNew(subreddit) {\n  console.log(`[reddit] placeholder fetch for r/${subreddit}`);\n  return [\n    {\n      id: `demo-${subreddit}-1`,\n      subreddit,\n      author: \"demo_user\",\n      body: `Placeholder content from r/${subreddit}`,\n      created_at: new Date().toISOString()\n    }\n  ];\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "content": "import http from \"node:http\";\nimport fs from \"node:fs\";\nimport path from \"node:path\";\n\nconst PORT = Number(process.env.API_PORT ?? 3001);\nconst ROOT = path.resolve(process.env.HOME || \".\", \"projects\", \"truth-lens\");\n\nfunction json(res, status, data) {\n  res.writeHead(status, { \"Content-Type\": \"application/json\" });\n  res.end(JSON.stringify(data, null, 2));\n}\n\nfunction notFound(res) {\n  json(res, 404, { error: \"not_found\" });\n}\n\nconst server = http.createServer((req, res) => {\n  const url = new URL(req.url || \"/\", `http://${req.headers.host}`);\n  const parts = url.pathname.split(\"/\").filter(Boolean);\n\n  if (url.pathname === \"/health\") {\n    return json(res, 200, {\n      status: \"ok\",\n      service: \"truth-lens-api\",\n      time_utc: new Date().toISOString(),\n      version: \"v1\"\n    });\n  }\n\n  if (parts[0] === \"post\" && parts[1]) {\n    return json(res, 200, {\n      entity_type: \"content\",\n      content_id: parts[1],\n      message: \"Post inspect stub\"\n    });\n  }\n\n  if (parts[0] === \"account\" && parts[1]) {\n    return json(res, 200, {\n      entity_type: \"account\",\n      author_id: parts[1],\n      message: \"Account inspect stub\"\n    });\n  }\n\n  if (parts[0] === \"cluster\" && parts[1]) {\n    return json(res, 200, {\n      entity_type: \"cluster\",\n      cluster_id: parts[1],\n      message: \"Cluster inspect stub\"\n    });\n  }\n\n  if (parts[0] === \"narrative\" && parts[1]) {\n    return json(res, 200, {\n      entity_type: \"narrative\",\n      narrative_id: parts[1],\n      message: \"Narrative inspect stub\"\n    });\n  }\n\n  if (parts[0] === \"tip\" && parts[1]) {\n    return json(res, 200, {\n      entity_id: parts[1],\n      available: false,\n      tip: {\n        headline: \"Signs of suspicious coordination\",\n        body: `Placeholder PRO TIP for ${parts[1]}`,\n        meaning: \"This may indicate an attempt to shape interpretation.\",\n        caution: \"This does not prove falsity or exact operator identity.\"\n      }\n    });\n  }\n\n  if (url.pathname === \"/debug/root\") {\n    const exists = fs.existsSync(ROOT);\n    return json(res, 200, { root: ROOT, exists });\n  }\n\n  return notFound(res);\n});\n\nserver.listen(PORT, () => {\n  console.log(`Truth Lens API running on port ${PORT}`);\n});\n"
+    },
+    {
+      "action": "write_file",
+      "path": "apps/worker/src/worker.ts",
+      "backup": true,
+      "content": "import { fetchSubredditNew } from \"../../../packages/reddit/src/fetch.ts\";\n\nconst SUBS = (process.env.PILOT_SUBREDDITS ?? \"technology,news,gaming\")\n  .split(\",\")\n  .map((s) => s.trim())\n  .filter(Boolean);\n\nasync function main() {\n  console.log(\"Truth Lens worker started\");\n  console.log(\"Pilot subreddits:\", SUBS.join(\", \"));\n\n  for (const subreddit of SUBS) {\n    const items = await fetchSubredditNew(subreddit);\n    console.log(`[worker] ${subreddit}: ${items.length} items`);\n  }\n\n  console.log(\"Worker cycle complete\");\n}\n\nmain().catch((err) => {\n  console.error(\"Worker failed:\", err);\n  process.exit(1);\n});\n"
+    }
+  ]
+}

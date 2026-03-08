@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+
+if [ -z "$1" ]; then
+  echo "Usage: tl-reset-file <relative/path>"
+  exit 1
+fi
+
+cd "$ROOT"
+git checkout -- "$1"
+echo "[reset] $1"

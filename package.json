@@ -1,0 +1,11 @@
+{
+  "name": "truth-lens",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "api": "node apps/api/src/server.ts",
+    "worker": "node apps/worker/src/worker.ts",
+    "run": "node apps/worker/src/worker.ts && node apps/api/src/server.ts"
+  }
+}

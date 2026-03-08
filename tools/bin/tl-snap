@@ -1,0 +1,15 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+MSG="${1:-snapshot}"
+
+cd "$ROOT"
+
+if [ ! -d .git ]; then
+  git init
+fi
+
+git add .
+git commit -m "$MSG" || true
+echo "[snap] $MSG"
