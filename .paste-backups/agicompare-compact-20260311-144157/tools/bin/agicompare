@@ -1,0 +1,18 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+echo "=== AGINET COMPARE ==="
+echo
+
+echo "--- h_verified ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_verified || true
+echo
+
+echo "--- h_brigaded ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_brigaded || true
+echo
+
+echo "--- h_uncertain ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_uncertain || true

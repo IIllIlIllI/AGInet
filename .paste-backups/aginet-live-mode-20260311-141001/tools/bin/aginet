@@ -1,0 +1,30 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+LATEST_REPORT="$ROOT/sim/data/latest_report.json"
+GRAPH_FILE="$ROOT/docs/generated-claim-graph.md"
+
+echo "=== AGINET DASHBOARD ==="
+echo
+echo "--- STATUS ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.status_summary || true
+echo
+echo "--- STATUS (FULL) ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.status_summary --full || true
+echo
+echo "--- DRIFT ---"
+PYTHONPATH="$ROOT" python -B -m sim.observatory.drift_report || true
+echo
+echo "--- ARTIFACTS ---"
+if [ -f "$LATEST_REPORT" ]; then
+  echo "latest_report: $LATEST_REPORT"
+else
+  echo "latest_report: missing ($LATEST_REPORT)"
+fi
+
+if [ -f "$GRAPH_FILE" ]; then
+  echo "graph_file:    $GRAPH_FILE"
+else
+  echo "graph_file:    missing ($GRAPH_FILE)"
+fi

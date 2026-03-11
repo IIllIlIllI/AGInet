@@ -1,0 +1,18 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+echo "=== AGINET SCAN ==="
+echo
+
+echo "--- STATUS ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.status_summary || true
+echo
+
+echo "--- COMPARE (COMPACT) ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.compare_compact || true
+echo
+
+echo "--- DRIFT ---"
+PYTHONPATH="$ROOT" python -B -m sim.observatory.drift_report || true

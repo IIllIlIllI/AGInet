@@ -13,19 +13,13 @@ Usage:
   tools/bin/agi observe
   tools/bin/agi drift
   tools/bin/agi inspect
-  tools/bin/agi explain [hypothesis_id]
-  tools/bin/agi status [--full]
   tools/bin/agi graph
   tools/bin/agi graph-out
-  tools/bin/agi watch
-  tools/bin/agi loop
   tools/bin/agi help
 TXT
 }
 
-cmd="${1:-help}"
-
-case "$cmd" in
+case "${1:-help}" in
   doctor)
     bash "$ROOT/tools/bin/repo-doctor"
     ;;
@@ -41,26 +35,12 @@ case "$cmd" in
   inspect)
     PYTHONPATH="$ROOT" python -B -m sim.tools.inspect_latest_report
     ;;
-  explain)
-    shift || true
-    PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest "$@"
-    ;;
-  status)
-    shift || true
-    PYTHONPATH="$ROOT" python -B -m sim.tools.status_summary "$@"
-    ;;
   graph)
     PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer
     ;;
   graph-out)
     PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer > "$ROOT/docs/generated-claim-graph.md"
     echo "[ok] wrote docs/generated-claim-graph.md"
-    ;;
-  watch)
-    PYTHONPATH="$ROOT" python -B -m sim.tools.watch_dashboard
-    ;;
-  loop)
-    PYTHONPATH="$ROOT" python -B -m sim.tools.loop_runner
     ;;
   help|*)
     usage

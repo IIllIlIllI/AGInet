@@ -1,0 +1,46 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+MODE="${1:-full}"
+
+usage() {
+  cat <<'TXT'
+AGInet compare
+
+Usage:
+  tools/bin/agicompare
+  tools/bin/agicompare full
+  tools/bin/agicompare compact
+TXT
+}
+
+case "$MODE" in
+  full)
+    echo "=== AGINET COMPARE ==="
+    echo
+
+    echo "--- h_verified ---"
+    PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_verified || true
+    echo
+
+    echo "--- h_brigaded ---"
+    PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_brigaded || true
+    echo
+
+    echo "--- h_uncertain ---"
+    PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_uncertain || true
+    ;;
+  compact)
+    PYTHONPATH="$ROOT" python -B -m sim.tools.compare_compact
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "[error] unknown mode: $MODE"
+    echo
+    usage
+    exit 1
+    ;;
+esac

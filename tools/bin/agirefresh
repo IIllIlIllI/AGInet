@@ -1,0 +1,23 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+echo "=== AGINET REFRESH ==="
+echo
+
+echo "--- OBSERVE ---"
+PYTHONPATH="$ROOT" python -B -m sim.observatory.run_logger || true
+echo
+
+echo "--- GRAPH OUT ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer > "$ROOT/docs/generated-claim-graph.md"
+echo "[ok] wrote $ROOT/docs/generated-claim-graph.md"
+echo
+
+echo "--- SCAN ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.status_summary || true
+echo
+PYTHONPATH="$ROOT" python -B -m sim.tools.compare_compact || true
+echo
+PYTHONPATH="$ROOT" python -B -m sim.observatory.drift_report || true

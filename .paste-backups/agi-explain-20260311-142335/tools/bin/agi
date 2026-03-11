@@ -13,7 +13,6 @@ Usage:
   tools/bin/agi observe
   tools/bin/agi drift
   tools/bin/agi inspect
-  tools/bin/agi explain [hypothesis_id]
   tools/bin/agi status [--full]
   tools/bin/agi graph
   tools/bin/agi graph-out
@@ -40,10 +39,6 @@ case "$cmd" in
     ;;
   inspect)
     PYTHONPATH="$ROOT" python -B -m sim.tools.inspect_latest_report
-    ;;
-  explain)
-    shift || true
-    PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest "$@"
     ;;
   status)
     shift || true

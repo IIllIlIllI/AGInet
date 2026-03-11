@@ -1,0 +1,27 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+INSTALLER="$ROOT/install_aginet_aliases.sh"
+
+echo "=== AGINET SETUP ==="
+echo
+
+if [ ! -f "$INSTALLER" ]; then
+  echo "[error] missing installer: $INSTALLER"
+  exit 1
+fi
+
+bash "$INSTALLER"
+
+echo
+echo "[ok] AGInet alias installer ran"
+echo
+echo "Next:"
+echo "  source ~/.bashrc"
+echo
+echo "Then test:"
+echo "  agirefresh"
+echo "  agiscan"
+echo "  aginetfull"
+echo "  aginetlive"

@@ -1,6 +1,57 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
+ROOT="${1:-$(pwd)}"
+BACKUP_DIR="$ROOT/.paste-backups/agicompare-$(date +%Y%m%d-%H%M%S)"
+
+mkdir -p "$BACKUP_DIR"
+
+backup_file() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    mkdir -p "$BACKUP_DIR/$(dirname "${file#"$ROOT/"}")"
+    cp "$file" "$BACKUP_DIR/${file#"$ROOT/"}"
+    echo "[backup] ${file#"$ROOT/"}"
+  fi
+}
+
+write_file() {
+  local file="$1"
+  backup_file "$file"
+  mkdir -p "$(dirname "$file")"
+  cat > "$file"
+  echo "[write] ${file#"$ROOT/"}"
+}
+
+echo "[patch] adding AGInet compare command"
+
+write_file "$ROOT/tools/bin/agicompare" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+echo "=== AGINET COMPARE ==="
+echo
+
+echo "--- h_verified ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_verified || true
+echo
+
+echo "--- h_brigaded ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_brigaded || true
+echo
+
+echo "--- h_uncertain ---"
+PYTHONPATH="$ROOT" python -B -m sim.tools.explain_latest h_uncertain || true
+EOF
+
+chmod +x "$ROOT/tools/bin/agicompare"
+
+write_file "$ROOT/install_aginet_aliases.sh" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
 BASHRC="$HOME/.bashrc"
 MARKER_BEGIN="# >>> AGINET ALIASES >>>"
 MARKER_END="# <<< AGINET ALIASES <<<"
@@ -23,16 +74,12 @@ alias aginetquick='cd ~/projects/AGInet && tools/bin/aginet quick'
 alias aginetfull='cd ~/projects/AGInet && tools/bin/aginet full'
 alias aginetlive='cd ~/projects/AGInet && tools/bin/aginet live'
 alias aginetfast='cd ~/projects/AGInet && AGINET_LOOP_INTERVAL=2 tools/bin/aginet live'
-alias agicontrol='cd ~/projects/AGInet && tools/bin/agicontrol'
 
 alias agirun='cd ~/projects/AGInet && tools/bin/agi run'
 alias agiobs='cd ~/projects/AGInet && tools/bin/agi observe'
 alias aginspect='cd ~/projects/AGInet && tools/bin/agi inspect'
 alias agiexplain='cd ~/projects/AGInet && tools/bin/agi explain'
 alias agicompare='cd ~/projects/AGInet && tools/bin/agicompare'
-alias agicomparecompact='cd ~/projects/AGInet && tools/bin/agicompare compact'
-alias agiscan='cd ~/projects/AGInet && tools/bin/agiscan'
-alias agirefresh='cd ~/projects/AGInet && tools/bin/agirefresh'
 alias agistatus='cd ~/projects/AGInet && tools/bin/agi status'
 alias agistatusfull='cd ~/projects/AGInet && tools/bin/agi status --full'
 alias agidrift='cd ~/projects/AGInet && tools/bin/agi drift'
@@ -40,7 +87,6 @@ alias agigraph='cd ~/projects/AGInet && tools/bin/agi graph'
 alias agigraphout='cd ~/projects/AGInet && tools/bin/agi graph-out'
 alias agiwatch='cd ~/projects/AGInet && tools/bin/agi watch'
 alias agiloop='cd ~/projects/AGInet && tools/bin/agi loop'
-alias agidoctor='cd ~/projects/AGInet && tools/bin/agi-doctor'
 
 alias agdoc='cd ~/projects/AGInet && bash tools/bin/repo-doctor'
 alias agroot='cd ~/projects/AGInet'
@@ -70,7 +116,24 @@ echo "[AGInet] Reload with:"
 echo "  source ~/.bashrc"
 echo
 echo "Then try:"
-echo "  agicontrol"
-echo "  agirefresh"
-echo "  agiscan"
-echo "  aginetfull"
+echo "  agicompare"
+echo "  agixv"
+echo "  agixb"
+echo "  agixu"
+EOF
+
+chmod +x "$ROOT/install_aginet_aliases.sh"
+
+echo
+echo "[patch] done"
+echo
+echo "Next steps:"
+echo "  bash install_aginet_aliases.sh"
+echo "  source ~/.bashrc"
+echo "  agicompare"
+echo
+echo "Suggested commit:"
+echo '  git add tools/bin/agicompare install_aginet_aliases.sh'
+echo '  git commit -m "add AGInet compare command"'
+echo "  git pull --no-rebase origin main"
+echo "  git push"

@@ -1,0 +1,155 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+run_in_root() {
+  (cd "$ROOT" && "$@")
+}
+
+pause() {
+  echo
+  read -r -p "Press Enter to return to menu..."
+}
+
+header() {
+  clear
+  echo "=============================="
+  echo "       AGINET CONTROL         "
+  echo "=============================="
+  echo "Repo: $ROOT"
+  echo
+}
+
+show_menu() {
+  echo " 1) Refresh"
+  echo " 2) Scan"
+  echo " 3) Dashboard Quick"
+  echo " 4) Dashboard Full"
+  echo " 5) Dashboard Live"
+  echo " 6) Status"
+  echo " 7) Status Full"
+  echo " 8) Compare Compact"
+  echo " 9) Compare Full"
+  echo "10) Explain Winner"
+  echo "11) Explain h_verified"
+  echo "12) Explain h_brigaded"
+  echo "13) Explain h_uncertain"
+  echo "14) Graph Out"
+  echo "15) Doctor"
+  echo "16) Git Status"
+  echo "17) Git Update"
+  echo "18) Repo Root Listing"
+  echo "19) Run Reference Sim"
+  echo "20) Observe"
+  echo "21) Drift"
+  echo " q) Quit"
+  echo
+}
+
+while true; do
+  header
+  show_menu
+  read -r -p "Choose an option: " choice
+
+  case "$choice" in
+    1)
+      run_in_root tools/bin/agirefresh
+      pause
+      ;;
+    2)
+      run_in_root tools/bin/agiscan
+      pause
+      ;;
+    3)
+      run_in_root tools/bin/aginet quick
+      pause
+      ;;
+    4)
+      run_in_root tools/bin/aginet full
+      pause
+      ;;
+    5)
+      exec env PYTHONPATH="$ROOT" python -B -m sim.tools.loop_runner
+      ;;
+    6)
+      run_in_root tools/bin/agi status
+      pause
+      ;;
+    7)
+      run_in_root tools/bin/agi status --full
+      pause
+      ;;
+    8)
+      run_in_root tools/bin/agicompare compact
+      pause
+      ;;
+    9)
+      run_in_root tools/bin/agicompare full
+      pause
+      ;;
+    10)
+      run_in_root tools/bin/agi explain
+      pause
+      ;;
+    11)
+      run_in_root tools/bin/agi explain h_verified
+      pause
+      ;;
+    12)
+      run_in_root tools/bin/agi explain h_brigaded
+      pause
+      ;;
+    13)
+      run_in_root tools/bin/agi explain h_uncertain
+      pause
+      ;;
+    14)
+      run_in_root tools/bin/agi graph-out
+      pause
+      ;;
+    15)
+      run_in_root tools/bin/agi-doctor
+      pause
+      ;;
+    16)
+      run_in_root git status
+      pause
+      ;;
+    17)
+      run_in_root git add .
+      if git -C "$ROOT" diff --cached --quiet; then
+        echo "[info] no staged changes to commit"
+      else
+        run_in_root git commit -m "AGInet update"
+      fi
+      run_in_root git pull --no-rebase origin main || true
+      run_in_root git push || true
+      pause
+      ;;
+    18)
+      run_in_root ls
+      pause
+      ;;
+    19)
+      run_in_root tools/bin/agi run
+      pause
+      ;;
+    20)
+      run_in_root tools/bin/agi observe
+      pause
+      ;;
+    21)
+      run_in_root tools/bin/agi drift
+      pause
+      ;;
+    q|Q)
+      echo "Goodbye."
+      exit 0
+      ;;
+    *)
+      echo "Invalid option."
+      sleep 1
+      ;;
+  esac
+done

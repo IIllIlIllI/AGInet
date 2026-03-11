@@ -1,49 +1,46 @@
 {
-  "run_id": "run-20260311-220157",
-  "timestamp_utc": "20260311-220157",
+  "run_id": "run-20260311-201550",
+  "timestamp_utc": "20260311-201550",
   "result": {
     "posterior_by_hypothesis": {
-      "h_verified": 0.42689798852189964,
-      "h_brigaded": 0.3344267739271849,
-      "h_uncertain": 0.16815068831271823
+      "h_verified": 0.5839773890104193,
+      "h_brigaded": 0.25612825300061476,
+      "h_uncertain": 0.21693750240899648
     },
     "fragility_by_hypothesis": {
       "h_verified": {
-        "e_dataset": 0.23116469918290328,
-        "e_forum_burst": 0.09503997368510808,
-        "e_analysis_blog": 0.04862670343649461,
-        "e_social_echo": 0.15707940048851965
+        "e_dataset": 0.26955763786684556,
+        "e_forum_burst": 0.0889487437055323,
+        "e_analysis_blog": 0.046825268030374456
       },
       "h_brigaded": {
-        "e_dataset": 0.10920396259639581,
-        "e_forum_burst": 0.14839064721975595,
-        "e_analysis_blog": 0.1297882851485292,
-        "e_social_echo": 0.07829852092657014
+        "e_dataset": 0.09720959994229611,
+        "e_forum_burst": 0.12071667430069238,
+        "e_analysis_blog": 0.11640963922353986
       },
       "h_uncertain": {
-        "e_dataset": 0.010524326491269803,
-        "e_forum_burst": 0.008159905120877775,
-        "e_analysis_blog": 0.049895540228171276,
-        "e_social_echo": 0.04878681409627825
+        "e_dataset": 0.012828597440073392,
+        "e_forum_burst": 0.009938266767702458,
+        "e_analysis_blog": 0.0595602512123318
       }
     },
     "residual_ambiguity": 3,
-    "sovereignty_pressure": 0.33999999999999997,
+    "sovereignty_pressure": 0.4,
     "contamination_flag": false,
     "claim_graph_summary": {
-      "claim_count": 5,
-      "edge_count": 7,
+      "claim_count": 4,
+      "edge_count": 5,
       "relation_counts": {
-        "supports": 3,
-        "contradicts": 2,
+        "supports": 2,
+        "contradicts": 1,
         "elaborates": 1,
         "speculative": 1
       },
-      "contradiction_density": 0.2857
+      "contradiction_density": 0.2
     },
     "claim_graph_support": {
-      "h_verified": -0.5,
-      "h_brigaded": 0.0,
+      "h_verified": 0.0,
+      "h_brigaded": -0.7,
       "h_uncertain": 0.0
     },
     "claim_graph_payload": {
@@ -81,15 +78,6 @@
           "tags": [
             "meta"
           ]
-        },
-        {
-          "claim_id": "c_social_echo",
-          "text": "A social echo chamber reinforces brigaded interpretation.",
-          "hypothesis_id": "h_brigaded",
-          "tags": [
-            "social",
-            "echo"
-          ]
         }
       ],
       "edges": [
@@ -122,47 +110,36 @@
           "target_claim_id": "c_forum_burst",
           "relation": "speculative",
           "weight": 0.3
-        },
-        {
-          "source_claim_id": "c_social_echo",
-          "target_claim_id": "c_forum_burst",
-          "relation": "supports",
-          "weight": 0.7
-        },
-        {
-          "source_claim_id": "c_social_echo",
-          "target_claim_id": "c_dataset_verified",
-          "relation": "contradicts",
-          "weight": 0.5
         }
       ],
       "summary": {
-        "claim_count": 5,
-        "edge_count": 7,
+        "claim_count": 4,
+        "edge_count": 5,
         "relation_counts": {
-          "supports": 3,
-          "contradicts": 2,
+          "supports": 2,
+          "contradicts": 1,
           "elaborates": 1,
           "speculative": 1
         },
-        "contradiction_density": 0.2857
+        "contradiction_density": 0.2
       },
       "support_by_hypothesis": {
-        "h_verified": -0.5,
-        "h_brigaded": 0.0,
+        "h_verified": 0.0,
+        "h_brigaded": -0.7,
         "h_uncertain": 0.0
       }
     },
-    "graph_variant": "heightened_brigade",
+    "graph_variant": "baseline",
     "audit": [
-      "[variant] heightened_brigade",
-      "[posterior] {'h_verified': 0.42689798852189964, 'h_brigaded': 0.3344267739271849, 'h_uncertain': 0.16815068831271823}",
+      "[variant] baseline",
+      "[posterior] {'h_verified': 0.5839773890104193, 'h_brigaded': 0.25612825300061476, 'h_uncertain': 0.21693750240899648}",
       "[ambiguity] residual=3",
-      "[sovereignty] pressure=0.340",
+      "[sovereignty] pressure=0.400",
       "[contamination] flag=False",
-      "[claim_graph] summary={'claim_count': 5, 'edge_count': 7, 'relation_counts': {'supports': 3, 'contradicts': 2, 'elaborates': 1, 'speculative': 1}, 'contradiction_density': 0.2857}",
-      "[claim_graph] support={'h_verified': -0.5, 'h_brigaded': 0.0, 'h_uncertain': 0.0}",
+      "[claim_graph] summary={'claim_count': 4, 'edge_count': 5, 'relation_counts': {'supports': 2, 'contradicts': 1, 'elaborates': 1, 'speculative': 1}, 'contradiction_density': 0.2}",
+      "[claim_graph] support={'h_verified': 0.0, 'h_brigaded': -0.7, 'h_uncertain': 0.0}",
       "[sovereignty_note] coercive or manipulative tag pressure detected",
+      "[sovereignty_note] fragility concentration indicates brittle reasoning",
       "[sovereignty_note] multiple live hypotheses remain unresolved"
     ]
   }

@@ -23,7 +23,6 @@ alias aginetquick='cd ~/projects/AGInet && tools/bin/aginet quick'
 alias aginetfull='cd ~/projects/AGInet && tools/bin/aginet full'
 alias aginetlive='cd ~/projects/AGInet && tools/bin/aginet live'
 alias aginetfast='cd ~/projects/AGInet && AGINET_LOOP_INTERVAL=2 tools/bin/aginet live'
-alias agicontrol='cd ~/projects/AGInet && tools/bin/agicontrol'
 
 alias agirun='cd ~/projects/AGInet && tools/bin/agi run'
 alias agiobs='cd ~/projects/AGInet && tools/bin/agi observe'
@@ -31,8 +30,6 @@ alias aginspect='cd ~/projects/AGInet && tools/bin/agi inspect'
 alias agiexplain='cd ~/projects/AGInet && tools/bin/agi explain'
 alias agicompare='cd ~/projects/AGInet && tools/bin/agicompare'
 alias agicomparecompact='cd ~/projects/AGInet && tools/bin/agicompare compact'
-alias agiscan='cd ~/projects/AGInet && tools/bin/agiscan'
-alias agirefresh='cd ~/projects/AGInet && tools/bin/agirefresh'
 alias agistatus='cd ~/projects/AGInet && tools/bin/agi status'
 alias agistatusfull='cd ~/projects/AGInet && tools/bin/agi status --full'
 alias agidrift='cd ~/projects/AGInet && tools/bin/agi drift'
@@ -40,7 +37,6 @@ alias agigraph='cd ~/projects/AGInet && tools/bin/agi graph'
 alias agigraphout='cd ~/projects/AGInet && tools/bin/agi graph-out'
 alias agiwatch='cd ~/projects/AGInet && tools/bin/agi watch'
 alias agiloop='cd ~/projects/AGInet && tools/bin/agi loop'
-alias agidoctor='cd ~/projects/AGInet && tools/bin/agi-doctor'
 
 alias agdoc='cd ~/projects/AGInet && bash tools/bin/repo-doctor'
 alias agroot='cd ~/projects/AGInet'
@@ -70,7 +66,5 @@ echo "[AGInet] Reload with:"
 echo "  source ~/.bashrc"
 echo
 echo "Then try:"
-echo "  agicontrol"
-echo "  agirefresh"
-echo "  agiscan"
-echo "  aginetfull"
+echo "  agicompare"
+echo "  agicomparecompact"
