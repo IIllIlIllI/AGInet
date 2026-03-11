@@ -1,0 +1,49 @@
+{
+  "id": "1rog22z",
+  "post": {
+    "id": "1rog22z",
+    "subreddit": "technology",
+    "author": "Cute-Guarantee-1676",
+    "title": "NASA successfully deflected a small asteroid with its DART rocket, kinetic strike ejected a significant amount of debris from the asteroid — impact nudges the orbit of the small astronomical body, affecting the larger cosmic object as well",
+    "body": "",
+    "created_at": "2026-03-08T20:49:28.000Z",
+    "permalink": "https://www.reddit.com/r/technology/comments/1rog22z/nasa_successfully_deflected_a_small_asteroid_with/",
+    "score": 72,
+    "num_comments": 4,
+    "url": "https://www.tomshardware.com/tech-industry/nasa-successfully-deflected-a-small-asteroid-with-its-dart-rocket-kinetic-strike-ejected-a-significant-amount-of-debris-from-the-asteroid-impact-nudges-the-orbit-of-the-small-astronomical-body-affecting-the-larger-cosmic-object-as-well",
+    "first_seen_at": "2026-03-08T21:21:11.218Z",
+    "last_seen_at": "2026-03-08T23:31:57.675Z",
+    "seen_count": 11,
+    "updated_at": "2026-03-08T23:31:57.675Z"
+  },
+  "features": {
+    "id": "1rog22z",
+    "subreddit": "technology",
+    "token_count": 37,
+    "sentence_count": 1,
+    "lexical_diversity": 0.8108108108108109,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 37,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rog22z",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:57.683Z",
+  "analysis_count": 11
+}

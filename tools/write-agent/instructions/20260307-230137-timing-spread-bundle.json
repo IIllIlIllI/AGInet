@@ -1,0 +1,52 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "packages/spread/src"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/spread/src/index.js",
+      "backup": false,
+      "content": "import { detectNarratives } from '../../narratives/src/index.js';\n\nfunction toMs(value) {\n  const n = new Date(value).getTime();\n  return Number.isFinite(n) ? n : 0;\n}\n\nfunction round2(n) {\n  return Math.round(n * 100) / 100;\n}\n\nfunction minutesBetween(a, b) {\n  return round2(Math.max(0, (toMs(b) - toMs(a)) / 60000));\n}\n\nfunction bucketHour(iso) {\n  const d = new Date(iso);\n  if (!Number.isFinite(d.getTime())) return 'unknown';\n  d.setMinutes(0, 0, 0);\n  return d.toISOString();\n}\n\nexport function buildSpread(posts) {\n  const narratives = detectNarratives(posts);\n  const postMap = new Map(posts.map((p) => [p.id, p]));\n\n  return narratives.map((nar) => {\n    const members = nar.post_ids.map((id) => postMap.get(id)).filter(Boolean);\n    const times = members.map((m) => m.created_at).filter(Boolean).sort();\n    const first_seen = times[0] || null;\n    const last_seen = times[times.length - 1] || null;\n    const span_minutes = first_seen && last_seen ? minutesBetween(first_seen, last_seen) : 0;\n    const subreddits = Array.from(new Set(members.map((m) => m.subreddit).filter(Boolean))).sort();\n    const authors = Array.from(new Set(members.map((m) => m.author).filter(Boolean))).sort();\n    const hourly = new Map();\n\n    for (const m of members) {\n      const bucket = bucketHour(m.created_at);\n      hourly.set(bucket, (hourly.get(bucket) || 0) + 1);\n    }\n\n    const timeline = [...hourly.entries()]\n      .sort((a, b) => a[0].localeCompare(b[0]))\n      .map(([bucket_start, count]) => ({ bucket_start, count }));\n\n    return {\n      id: nar.id,\n      label: nar.label,\n      keywords: nar.keywords,\n      post_ids: nar.post_ids,\n      authors,\n      subreddits,\n      author_count: authors.length,\n      subreddit_count: subreddits.length,\n      first_seen,\n      last_seen,\n      span_minutes,\n      time_compression_flag: nar.count >= 2 && span_minutes <= 120,\n      timeline\n    };\n  }).sort((a, b) => {\n    if (a.time_compression_flag !== b.time_compression_flag) {\n      return a.time_compression_flag ? -1 : 1;\n    }\n    return b.post_ids.length - a.post_ids.length || a.label.localeCompare(b.label);\n  });\n}\n\nexport function getSpreadById(id, posts) {\n  return buildSpread(posts).find((x) => x.id === id) || null;\n}\n\nexport function getTimelineById(id, posts) {\n  const item = getSpreadById(id, posts);\n  if (!item) return null;\n  return {\n    id: item.id,\n    label: item.label,\n    first_seen: item.first_seen,\n    last_seen: item.last_seen,\n    span_minutes: item.span_minutes,\n    timeline: item.timeline\n  };\n}\n"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "import \\{ buildBaselines, getBaselineForSubreddit, compareClusterToBaselines \\} from '\\.\\./\\.\\./\\.\\./packages/baseline/src/index\\.js';",
+      "flags": "",
+      "replace": "import { buildBaselines, getBaselineForSubreddit, compareClusterToBaselines } from '../../../packages/baseline/src/index.js';\nimport { buildSpread, getSpreadById, getTimelineById } from '../../../packages/spread/src/index.js';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/baselines'\\) \\{\\n    return json\\(res, 200, buildBaselines\\(listPosts\\(\\), listAnalysis\\(\\)\\)\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (url.pathname === '/baselines') {\n    return json(res, 200, buildBaselines(listPosts(), listAnalysis()));\n  }\n\n  if (url.pathname === '/spread') {\n    return json(res, 200, buildSpread(listPosts()));\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(parts\\[0\\] === 'baselines' && parts\\[1\\]\\) \\{\\n    const item = getBaselineForSubreddit\\(parts\\[1\\], listPosts\\(\\), listAnalysis\\(\\)\\);\\n    return item \\? json\\(res, 200, item\\) : notFound\\(res\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (parts[0] === 'baselines' && parts[1]) {\n    const item = getBaselineForSubreddit(parts[1], listPosts(), listAnalysis());\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  if (parts[0] === 'spread' && parts[1]) {\n    const item = getSpreadById(parts[1], listPosts());\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  if (parts[0] === 'timeline' && parts[1]) {\n    const item = getTimelineById(parts[1], listPosts());\n    return item ? json(res, 200, item) : notFound(res);\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "routes: \\['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id'\\]",
+      "flags": "",
+      "replace": "routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id', '/spread', '/spread/:id', '/timeline/:id']"
+    },
+    {
+      "action": "append_file",
+      "path": "README.md",
+      "backup": true,
+      "content": "\n## timing and spread routes\n\n- `/spread` - narrative spread summaries with timing windows\n- `/spread/:id` - one narrative spread record\n- `/timeline/:id` - hourly timeline for one narrative\n- spread records include first_seen, last_seen, span_minutes, subreddit_count, author_count, and a simple time_compression_flag\n"
+    }
+  ]
+}

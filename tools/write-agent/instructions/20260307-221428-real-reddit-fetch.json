@@ -1,0 +1,16 @@
+{
+  "operations": [
+    {
+      "action": "write_file",
+      "path": "packages/reddit/src/fetch.ts",
+      "backup": true,
+      "content": "const USER_AGENT = process.env.REDDIT_USER_AGENT || 'truth-lens/0.1';\n\nexport async function fetchSubredditNew(subreddit) {\n  const url = `https://www.reddit.com/r/${subreddit}/new.json?limit=10`;\n\n  const res = await fetch(url, {\n    headers: {\n      'User-Agent': USER_AGENT,\n      'Accept': 'application/json'\n    }\n  });\n\n  if (!res.ok) {\n    throw new Error(`Reddit fetch failed for r/${subreddit}: ${res.status}`);\n  }\n\n  const json = await res.json();\n  const children = json?.data?.children || [];\n\n  return children.map((item) => {\n    const d = item.data || {};\n    return {\n      id: d.id,\n      subreddit: d.subreddit,\n      author: d.author,\n      title: d.title || '',\n      body: d.selftext || '',\n      created_at: d.created_utc ? new Date(d.created_utc * 1000).toISOString() : new Date().toISOString(),\n      permalink: d.permalink ? `https://www.reddit.com${d.permalink}` : '',\n      score: d.score ?? 0,\n      num_comments: d.num_comments ?? 0,\n      url: d.url || ''\n    };\n  });\n}\n"
+    },
+    {
+      "action": "replace_in_file",
+      "path": ".env.example",
+      "find": "REDDIT_USER_AGENT=truth-lens/0.1",
+      "replace": "REDDIT_USER_AGENT=truth-lens/0.1 (Termux)"
+    }
+  ]
+}

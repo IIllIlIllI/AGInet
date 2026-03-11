@@ -1,0 +1,47 @@
+{
+  "id": "1rnsk3v",
+  "post": {
+    "id": "1rnsk3v",
+    "subreddit": "news",
+    "author": "AudibleNod",
+    "title": "Jan. 6 plaque honoring police officers is now displayed at the Capitol after a 3-year delay",
+    "body": "",
+    "created_at": "2026-03-08T02:19:24.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1rnsk3v/jan_6_plaque_honoring_police_officers_is_now/",
+    "score": 4706,
+    "num_comments": 84,
+    "url": "https://apnews.com/article/capitol-riot-plaque-police-officers-delay-27d90c9de3269eb508e0c8d4459f9d7d",
+    "first_seen_at": "2026-03-08T15:52:05.132Z",
+    "last_seen_at": "2026-03-08T16:34:56.476Z",
+    "seen_count": 5,
+    "updated_at": "2026-03-08T16:34:56.476Z"
+  },
+  "features": {
+    "id": "1rnsk3v",
+    "subreddit": "news",
+    "token_count": 17,
+    "sentence_count": 2,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 8.5,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rnsk3v",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.45,
+    "confidence_band": "moderate",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T16:34:56.478Z",
+  "analysis_count": 5
+}

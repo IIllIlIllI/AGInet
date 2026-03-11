@@ -1,0 +1,49 @@
+{
+  "id": "1robpp4",
+  "post": {
+    "id": "1robpp4",
+    "subreddit": "technology",
+    "author": "gdelacalle",
+    "title": "OpenAI on Surveillance and Autonomous Killings: You’re Going to Have to Trust Us",
+    "body": "",
+    "created_at": "2026-03-08T18:05:24.000Z",
+    "permalink": "https://www.reddit.com/r/technology/comments/1robpp4/openai_on_surveillance_and_autonomous_killings/",
+    "score": 1407,
+    "num_comments": 212,
+    "url": "https://theintercept.com/2026/03/08/openai-anthropic-military-contract-ethics-surveillance/",
+    "first_seen_at": "2026-03-08T21:21:11.234Z",
+    "last_seen_at": "2026-03-08T23:31:57.700Z",
+    "seen_count": 11,
+    "updated_at": "2026-03-08T23:31:57.700Z"
+  },
+  "features": {
+    "id": "1robpp4",
+    "subreddit": "technology",
+    "token_count": 14,
+    "sentence_count": 1,
+    "lexical_diversity": 0.9285714285714286,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 14,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1robpp4",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:57.701Z",
+  "analysis_count": 11
+}

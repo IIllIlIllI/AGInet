@@ -1,0 +1,50 @@
+{
+  "id": "1rnyabi",
+  "post": {
+    "id": "1rnyabi",
+    "subreddit": "gaming",
+    "author": "sygyzy0",
+    "title": "What are some of the most infamous/egregious quick time events in gaming?",
+    "body": "As the title says, what are some examples of quick time events in games that are either so fast it’s borderline impossible, or it comes at such a strange or inconvenient time that you couldn’t possibly expect it? Or an example of a one off quick time event in a game that just never happens again.",
+    "created_at": "2026-03-08T07:13:58.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1rnyabi/what_are_some_of_the_most_infamousegregious_quick/",
+    "score": 13,
+    "num_comments": 75,
+    "url": "https://www.reddit.com/r/gaming/comments/1rnyabi/what_are_some_of_the_most_infamousegregious_quick/",
+    "first_seen_at": "2026-03-08T15:52:05.507Z",
+    "last_seen_at": "2026-03-08T17:06:54.408Z",
+    "seen_count": 6,
+    "updated_at": "2026-03-08T17:06:54.408Z"
+  },
+  "features": {
+    "id": "1rnyabi",
+    "subreddit": "gaming",
+    "token_count": 71,
+    "sentence_count": 3,
+    "lexical_diversity": 0.676056338028169,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 2,
+    "mean_sentence_length": 23.67,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rnyabi",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.4,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.61,
+    "confidence_band": "high",
+    "reasons": [
+      "lower lexical diversity",
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T17:06:54.411Z",
+  "analysis_count": 6
+}

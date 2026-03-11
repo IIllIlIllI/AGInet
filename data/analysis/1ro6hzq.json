@@ -1,0 +1,50 @@
+{
+  "id": "1ro6hzq",
+  "post": {
+    "id": "1ro6hzq",
+    "subreddit": "gaming",
+    "author": "ryan8954",
+    "title": "What were some cool events related to big games that people don't talk about?",
+    "body": "For example, everybody remembers the \"ilovebees\" for halo 2, or the \"believe\" for halo 3. But I don't see and can't find any information related to Bungie's other stuff like some unknown program/user who spammed the same image started \"infecting\" their forums and talking like a ai program\n\nor how after solving a little puzzle you could go to a website and find even more clues, and click on some glyphs that were like on floating orbs every few days and when it was done, the reward was ODST reveal (at the time it was named recon)\n\nEdit: halo 3 iris ARG\n\n[https://youtu.be/AylF7G69FCM?si=UxxbMdN\\_ZvgFa7pl](https://youtu.be/AylF7G69FCM?si=UxxbMdN_ZvgFa7pl)",
+    "created_at": "2026-03-08T14:39:40.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1ro6hzq/what_were_some_cool_events_related_to_big_games/",
+    "score": 9,
+    "num_comments": 14,
+    "url": "https://www.reddit.com/r/gaming/comments/1ro6hzq/what_were_some_cool_events_related_to_big_games/",
+    "first_seen_at": "2026-03-08T15:52:05.489Z",
+    "last_seen_at": "2026-03-08T17:06:54.394Z",
+    "seen_count": 6,
+    "updated_at": "2026-03-08T17:06:54.394Z"
+  },
+  "features": {
+    "id": "1ro6hzq",
+    "subreddit": "gaming",
+    "token_count": 131,
+    "sentence_count": 7,
+    "lexical_diversity": 0.7022900763358778,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 1,
+    "exclamation_count": 0,
+    "question_count": 3,
+    "mean_sentence_length": 18.71,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1ro6hzq",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.4,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.61,
+    "confidence_band": "high",
+    "reasons": [
+      "lower lexical diversity",
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T17:06:54.396Z",
+  "analysis_count": 6
+}

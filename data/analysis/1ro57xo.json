@@ -1,0 +1,50 @@
+{
+  "id": "1ro57xo",
+  "post": {
+    "id": "1ro57xo",
+    "subreddit": "gaming",
+    "author": "MurkyUnit3180",
+    "title": "Most players don't actually want freedom, they want reassurance",
+    "body": "We often talk about player freedom as an unquestioned good. Open builds, open maps, and systems. Play how you want. But watching how people actually play, I am not convinced that is what most players are looking for\n\nWhat they seem to want is reassurance:\n\n* That their build isn't bad\n* That their time isn't being wasted\n* That they won't softlock themselves \n* That the game won't let them lose \n\nI think that is the reason why metas form so fast. The reason why guides, tier lists, and best builds dominate discourse within days of release. It is not because players lack creativity or something, but because uncertainty is stressful, and reassurance is comforting\n\nThis also explains something that looks like a contradiction on the surface. a lot of players happily add self imposed restrictions (nuzlockes, ironman run, no hit runs), but hate designed restriction\n\nThe difference is control. self imposed friction comes with reassurance. You already understand the systems, you know what good play looks like, and you can always stop if it stops being fun\n\nDesigned friction (meaning: any aspect of a user interface or interaction flow that slows down or hinders users from accomplishing their goals) has no such guarantee. You commit before you know if you are doing it right\n\nSo when people say:\n\n\"This game is too hard\"\n\n\"This build variety is terrible\"\n\n\"Players optimize the fun out of games\"\n\nI think what they are really reacting to is anxiety, not difficulty. Freedom without reassurance feels like risk.\nConstraint with reassurance feels like mastery\n\nThat tension, between uncertainty and safety, might matter more than difficulty, accessibility, or freedom ever did",
+    "created_at": "2026-03-08T13:43:16.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1ro57xo/most_players_dont_actually_want_freedom_they_want/",
+    "score": 539,
+    "num_comments": 122,
+    "url": "https://www.reddit.com/r/gaming/comments/1ro57xo/most_players_dont_actually_want_freedom_they_want/",
+    "first_seen_at": "2026-03-08T15:52:05.499Z",
+    "last_seen_at": "2026-03-08T17:06:54.403Z",
+    "seen_count": 6,
+    "updated_at": "2026-03-08T17:06:54.403Z"
+  },
+  "features": {
+    "id": "1ro57xo",
+    "subreddit": "gaming",
+    "token_count": 282,
+    "sentence_count": 12,
+    "lexical_diversity": 0.5957446808510638,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 1,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 3,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 23.5,
+    "abstraction_hint": 1
+  },
+  "score": {
+    "id": "1ro57xo",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.4,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.61,
+    "confidence_band": "high",
+    "reasons": [
+      "lower lexical diversity",
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T17:06:54.404Z",
+  "analysis_count": 6
+}

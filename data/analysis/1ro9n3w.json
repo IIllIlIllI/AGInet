@@ -1,0 +1,49 @@
+{
+  "id": "1ro9n3w",
+  "post": {
+    "id": "1ro9n3w",
+    "subreddit": "gaming",
+    "author": "MurkyUnit3180",
+    "title": "Slay the Spire 2 reached 574,638 concurrent players, making it the 20th highest all-time peak on Steam.",
+    "body": "",
+    "created_at": "2026-03-08T16:46:46.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1ro9n3w/slay_the_spire_2_reached_574638_concurrent/",
+    "score": 4589,
+    "num_comments": 371,
+    "url": "https://steamdb.info/app/2868840/charts/",
+    "first_seen_at": "2026-03-08T17:06:54.384Z",
+    "last_seen_at": "2026-03-08T23:31:58.482Z",
+    "seen_count": 12,
+    "updated_at": "2026-03-08T23:31:58.482Z"
+  },
+  "features": {
+    "id": "1ro9n3w",
+    "subreddit": "gaming",
+    "token_count": 19,
+    "sentence_count": 1,
+    "lexical_diversity": 0.9473684210526315,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 19,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1ro9n3w",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:58.483Z",
+  "analysis_count": 12
+}

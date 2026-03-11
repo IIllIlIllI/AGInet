@@ -1,0 +1,40 @@
+{
+  "operations": [
+    {
+      "action": "write_file",
+      "path": "packages/cluster/src/index.js",
+      "backup": false,
+      "content": "function tokenize(text) {\n  return String(text || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    .filter(Boolean);\n}\n\nfunction phraseWindows(tokens, size = 3) {\n  const out = [];\n  for (let i = 0; i <= tokens.length - size; i += 1) {\n    out.push(tokens.slice(i, i + size).join(' '));\n  }\n  return out;\n}\n\nfunction normalizeText(post) {\n  return `${post.title || ''} ${post.body || ''}`.trim();\n}\n\nfunction buildPhraseMap(posts) {\n  const map = new Map();\n\n  for (const post of posts) {\n    const text = normalizeText(post);\n    const tokens = tokenize(text);\n    const phrases = new Set(phraseWindows(tokens, 3));\n\n    for (const phrase of phrases) {\n      if (phrase.length < 8) continue;\n      if (!map.has(phrase)) map.set(phrase, []);\n      map.get(phrase).push(post.id);\n    }\n  }\n\n  return map;\n}\n\nexport function detectNarratives(posts) {\n  const phraseMap = buildPhraseMap(posts);\n  const narratives = [];\n\n  for (const [phrase, ids] of phraseMap.entries()) {\n    if (ids.length < 2) continue;\n    narratives.push({\n      id: `nar-${slug(phrase)}`,\n      phrase,\n      post_ids: Array.from(new Set(ids)).sort(),\n      count: Array.from(new Set(ids)).length\n    });\n  }\n\n  narratives.sort((a, b) => b.count - a.count || a.phrase.localeCompare(b.phrase));\n  return narratives.slice(0, 50);\n}\n\nexport function detectClusters(posts, analyses) {\n  const narratives = detectNarratives(posts);\n  const scoreMap = new Map(analyses.map((a) => [a.id, a]));\n\n  return narratives.map((nar, index) => {\n    const items = nar.post_ids\n      .map((id) => scoreMap.get(id))\n      .filter(Boolean);\n\n    const avgSynthetic = avg(items.map((x) => x.score.synthetic_language_likelihood || 0));\n    const avgSteering = avg(items.map((x) => x.score.narrative_steering_likelihood || 0));\n    const avgCoordination = avg(items.map((x) => x.score.coordination_likelihood || 0));\n\n    return {\n      id: `clu-${index + 1}-${slug(nar.phrase).slice(0, 24)}`,\n      narrative_id: nar.id,\n      phrase: nar.phrase,\n      post_ids: nar.post_ids,\n      size: nar.count,\n      average_synthetic_language_likelihood: round2(avgSynthetic),\n      average_narrative_steering_likelihood: round2(avgSteering),\n      average_coordination_likelihood: round2(avgCoordination),\n      suspicion_rank: round2((avgSteering + avgCoordination + avgSynthetic) / 3)\n    };\n  }).sort((a, b) => b.suspicion_rank - a.suspicion_rank || b.size - a.size);\n}\n\nfunction avg(values) {\n  if (!values.length) return 0;\n  return values.reduce((a, b) => a + b, 0) / values.length;\n}\n\nfunction round2(n) {\n  return Math.round(n * 100) / 100;\n}\n\nfunction slug(text) {\n  return String(text || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '')\n    .slice(0, 60);\n}\n"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "import \\{ listPosts, getPost, listAnalysis, getAnalysis \\} from '\\.\\./\\.\\./\\.\\./packages/storage/src/storage\\.js';",
+      "flags": "",
+      "replace": "import { listPosts, getPost, listAnalysis, getAnalysis } from '../../../packages/storage/src/storage.js';\nimport { detectNarratives, detectClusters } from '../../../packages/cluster/src/index.js';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/summary'\\) \\{[\\s\\S]*?\\n  \\}\\n\\n  return json\\(res, 200, \\{",
+      "flags": "",
+      "replace": "if (url.pathname === '/summary') {\n    return json(res, 200, summarize(listAnalysis()));\n  }\n\n  if (url.pathname === '/narratives') {\n    return json(res, 200, detectNarratives(listPosts()));\n  }\n\n  if (parts[0] === 'narratives' && parts[1]) {\n    const item = detectNarratives(listPosts()).find((x) => x.id === parts[1]);\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  if (url.pathname === '/clusters') {\n    return json(res, 200, detectClusters(listPosts(), listAnalysis()));\n  }\n\n  if (parts[0] === 'clusters' && parts[1]) {\n    const item = detectClusters(listPosts(), listAnalysis()).find((x) => x.id === parts[1]);\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  return json(res, 200, {"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "routes: \\['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary'\\]",
+      "flags": "",
+      "replace": "routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id']"
+    },
+    {
+      "action": "append_file",
+      "path": "README.md",
+      "backup": true,
+      "content": "\n## new prototype routes\n\n- `/narratives` - repeated phrase groups across saved posts\n- `/narratives/:id` - one repeated phrase group\n- `/clusters` - suspicious cluster summaries derived from repeated phrases + scores\n- `/clusters/:id` - one cluster summary\n"
+    }
+  ]
+}

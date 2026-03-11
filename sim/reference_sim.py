@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from sim.core.claim_graph import ClaimGraph
 from sim.core.constraints import Constraint, apply_constraints
 from sim.core.fragility import compute_fragility
 from sim.core.inference import Evidence, Hypothesis, compute_posteriors, compute_residual_ambiguity
@@ -15,7 +16,45 @@ class SimResult:
     residual_ambiguity: int
     sovereignty_pressure: float
     contamination_flag: bool
+    claim_graph_summary: dict
+    claim_graph_support: dict[str, float]
     audit: list[str] = field(default_factory=list)
+
+
+def build_reference_claim_graph() -> ClaimGraph:
+    graph = ClaimGraph()
+
+    graph.add_claim(
+        "c_dataset_verified",
+        "A dataset-backed signal supports the verified interpretation.",
+        hypothesis_id="h_verified",
+        tags=["verified", "dataset"],
+    )
+    graph.add_claim(
+        "c_forum_burst",
+        "A forum burst suggests coordinated or brigaded amplification.",
+        hypothesis_id="h_brigaded",
+        tags=["forum", "brigade"],
+    )
+    graph.add_claim(
+        "c_blog_analysis",
+        "A derivative analysis blog offers mixed support and interpretation.",
+        hypothesis_id="h_uncertain",
+        tags=["derivative"],
+    )
+    graph.add_claim(
+        "c_verified_vs_brigaded",
+        "Verified and brigaded interpretations are in tension.",
+        tags=["meta"],
+    )
+
+    graph.add_edge("c_dataset_verified", "c_verified_vs_brigaded", "supports", weight=0.9)
+    graph.add_edge("c_forum_burst", "c_verified_vs_brigaded", "supports", weight=0.8)
+    graph.add_edge("c_dataset_verified", "c_forum_burst", "contradicts", weight=0.7)
+    graph.add_edge("c_blog_analysis", "c_dataset_verified", "elaborates", weight=0.4)
+    graph.add_edge("c_blog_analysis", "c_forum_burst", "speculative", weight=0.3)
+
+    return graph
 
 
 def run_reference_sim() -> SimResult:
@@ -80,10 +119,19 @@ def run_reference_sim() -> SimResult:
     residual_ambiguity = compute_residual_ambiguity(posteriors)
     sovereignty = compute_sovereignty_report(evidence_items, posteriors, fragility)
 
+    claim_graph = build_reference_claim_graph()
+    graph_summary = claim_graph.summary()
+    graph_support = {
+        hid: round(claim_graph.support_score_for_hypothesis(hid), 4)
+        for hid in hypotheses.keys()
+    }
+
     audit.append(f"[posterior] {posteriors}")
     audit.append(f"[ambiguity] residual={residual_ambiguity}")
     audit.append(f"[sovereignty] pressure={sovereignty.pressure:.3f}")
     audit.append(f"[contamination] flag={sovereignty.contamination_flag}")
+    audit.append(f"[claim_graph] summary={graph_summary}")
+    audit.append(f"[claim_graph] support={graph_support}")
     for note in sovereignty.notes:
         audit.append(f"[sovereignty_note] {note}")
 
@@ -93,6 +141,8 @@ def run_reference_sim() -> SimResult:
         residual_ambiguity=residual_ambiguity,
         sovereignty_pressure=sovereignty.pressure,
         contamination_flag=sovereignty.contamination_flag,
+        claim_graph_summary=graph_summary,
+        claim_graph_support=graph_support,
         audit=audit,
     )
 
@@ -119,6 +169,14 @@ def main() -> None:
 
     print("\nContamination flag:")
     print(f"  {result.contamination_flag}")
+
+    print("\nClaim graph summary:")
+    for k, v in result.claim_graph_summary.items():
+        print(f"  {k}: {v}")
+
+    print("\nClaim graph support by hypothesis:")
+    for hid, score in sorted(result.claim_graph_support.items()):
+        print(f"  {hid}: {score:.4f}")
 
     print("\nAudit trail:")
     for line in result.audit:

@@ -1,0 +1,72 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+CHECKPOINT_ROOT="$ROOT/checkpoints"
+
+YES_MODE=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --yes)
+      YES_MODE="1"
+      ;;
+  esac
+done
+
+NAME=""
+for arg in "$@"; do
+  case "$arg" in
+    --yes)
+      ;;
+    *)
+      NAME="$arg"
+      ;;
+  esac
+done
+
+if [ -z "$NAME" ]; then
+  echo "Usage:"
+  echo "  tl-delete-checkpoint <checkpoint-folder-name>"
+  echo "  tl-delete-checkpoint <checkpoint-folder-name> --yes"
+  echo
+  echo "Available checkpoints:"
+  ls -1 "$CHECKPOINT_ROOT" 2>/dev/null || true
+  exit 1
+fi
+
+TARGET="$CHECKPOINT_ROOT/$NAME"
+
+if [ ! -d "$TARGET" ]; then
+  echo "[error] checkpoint not found: $TARGET"
+  echo
+  echo "Available checkpoints:"
+  ls -1 "$CHECKPOINT_ROOT" 2>/dev/null || true
+  exit 1
+fi
+
+case "$TARGET" in
+  "$CHECKPOINT_ROOT"/*)
+    ;;
+  *)
+    echo "[error] refusing to delete path outside checkpoints root"
+    exit 1
+    ;;
+esac
+
+echo
+echo "=== Truth Lens Delete Checkpoint ==="
+echo "Target: $TARGET"
+echo
+
+if [ -z "$YES_MODE" ]; then
+  printf "Delete this checkpoint permanently? [y/N]: "
+  read -r CONFIRM
+  if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+    echo "[cancelled]"
+    exit 0
+  fi
+fi
+
+rm -rf "$TARGET"
+echo "[deleted] $TARGET"

@@ -1,0 +1,47 @@
+{
+  "id": "1ro8hmr",
+  "post": {
+    "id": "1ro8hmr",
+    "subreddit": "technology",
+    "author": "Vegetable-Rule-6108",
+    "title": "University of Northern Iowa adds two new artificial intelligence majors",
+    "body": "",
+    "created_at": "2026-03-08T16:01:33.000Z",
+    "permalink": "https://www.reddit.com/r/technology/comments/1ro8hmr/university_of_northern_iowa_adds_two_new/",
+    "score": 18,
+    "num_comments": 2,
+    "url": "https://www.kcrg.com/2026/03/07/university-northern-iowa-adds-two-new-artificial-intelligence-majors/",
+    "first_seen_at": "2026-03-08T16:25:52.043Z",
+    "last_seen_at": "2026-03-08T23:31:57.717Z",
+    "seen_count": 14,
+    "updated_at": "2026-03-08T23:31:57.717Z"
+  },
+  "features": {
+    "id": "1ro8hmr",
+    "subreddit": "technology",
+    "token_count": 10,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 10,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1ro8hmr",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.25,
+    "confidence_band": "low",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T23:31:57.719Z",
+  "analysis_count": 14
+}

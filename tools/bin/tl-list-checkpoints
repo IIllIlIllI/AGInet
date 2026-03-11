@@ -1,0 +1,43 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+CHECKPOINT_ROOT="$ROOT/checkpoints"
+
+echo
+echo "=== Truth Lens Checkpoints ==="
+echo
+
+if [ ! -d "$CHECKPOINT_ROOT" ]; then
+  echo "No checkpoints directory found."
+  exit 0
+fi
+
+found_any=0
+
+for dir in "$CHECKPOINT_ROOT"/*; do
+  [ -d "$dir" ] || continue
+  found_any=1
+
+  name="$(basename "$dir")"
+  manifest="$dir/manifest.txt"
+
+  echo "Checkpoint: $name"
+
+  if [ -f "$manifest" ]; then
+    created_at="$(grep '^created_at=' "$manifest" 2>/dev/null | head -n 1 | cut -d'=' -f2-)"
+    label="$(grep '^label=' "$manifest" 2>/dev/null | head -n 1 | cut -d'=' -f2-)"
+    root="$(grep '^root=' "$manifest" 2>/dev/null | head -n 1 | cut -d'=' -f2-)"
+
+    [ -n "$created_at" ] && echo "  created_at: $created_at"
+    [ -n "$label" ] && echo "  label: $label"
+    [ -n "$root" ] && echo "  root: $root"
+  fi
+
+  echo "  path: $dir"
+  echo
+done
+
+if [ "$found_any" -eq 0 ]; then
+  echo "No checkpoints found."
+fi

@@ -1,0 +1,68 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "packages/baseline/src"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/baseline/src/index.js",
+      "backup": false,
+      "content": "function avg(values) {\n  if (!values.length) return 0;\n  return values.reduce((a, b) => a + b, 0) / values.length;\n}\n\nfunction round3(n) {\n  return Math.round(n * 1000) / 1000;\n}\n\nfunction tokenize(text) {\n  return String(text || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    .filter(Boolean);\n}\n\nfunction stopwords() {\n  return new Set(['the', 'and', 'but', 'or', 'if', 'then', 'because', 'that', 'which', 'to', 'of', 'in', 'a', 'an', 'is', 'are', 'it', 'this', 'we', 'they', 'you']);\n}\n\nfunction topKeywords(post, max = 8) {\n  const sw = stopwords();\n  const counts = new Map();\n  const tokens = tokenize(`${post.title || ''} ${post.body || ''}`);\n  for (const t of tokens) {\n    if (sw.has(t) || t.length < 4) continue;\n    counts.set(t, (counts.get(t) || 0) + 1);\n  }\n  return [...counts.entries()]\n    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))\n    .slice(0, max)\n    .map(([k]) => k);\n}\n\nexport function buildBaselines(posts, analyses) {\n  const bySub = new Map();\n  const analysisMap = new Map(analyses.map((a) => [a.id, a]));\n\n  for (const post of posts) {\n    const sub = post.subreddit || 'unknown';\n    if (!bySub.has(sub)) bySub.set(sub, []);\n    const analysis = analysisMap.get(post.id);\n    if (analysis) {\n      bySub.get(sub).push({ post, analysis });\n    }\n  }\n\n  const out = [];\n\n  for (const [subreddit, rows] of bySub.entries()) {\n    const keywordCounts = new Map();\n\n    for (const row of rows) {\n      for (const k of topKeywords(row.post)) {\n        keywordCounts.set(k, (keywordCounts.get(k) || 0) + 1);\n      }\n    }\n\n    const common_keywords = [...keywordCounts.entries()]\n      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))\n      .slice(0, 12)\n      .map(([k, count]) => ({ keyword: k, count }));\n\n    out.push({\n      subreddit,\n      post_count: rows.length,\n      average_synthetic_language_likelihood: round3(avg(rows.map((r) => r.analysis.score.synthetic_language_likelihood || 0))),\n      average_narrative_steering_likelihood: round3(avg(rows.map((r) => r.analysis.score.narrative_steering_likelihood || 0))),\n      average_coordination_likelihood: round3(avg(rows.map((r) => r.analysis.score.coordination_likelihood || 0))),\n      average_token_count: round3(avg(rows.map((r) => r.analysis.features.token_count || 0))),\n      average_lexical_diversity: round3(avg(rows.map((r) => r.analysis.features.lexical_diversity || 0))),\n      average_sentence_length_variance: round3(avg(rows.map((r) => r.analysis.features.sentence_length_variance || 0))),\n      average_function_word_ratio: round3(avg(rows.map((r) => r.analysis.features.function_word_ratio || 0))),\n      common_keywords\n    });\n  }\n\n  return out.sort((a, b) => a.subreddit.localeCompare(b.subreddit));\n}\n\nexport function getBaselineForSubreddit(subreddit, posts, analyses) {\n  return buildBaselines(posts, analyses).find((x) => x.subreddit === subreddit) || null;\n}\n\nexport function compareClusterToBaselines(cluster, baselines) {\n  const matches = (cluster.subreddits || [])\n    .map((sub) => baselines.find((b) => b.subreddit === sub))\n    .filter(Boolean);\n\n  if (!matches.length) {\n    return {\n      baseline_context: 'no baseline available',\n      steering_delta: 0,\n      coordination_delta: 0,\n      synthetic_delta: 0\n    };\n  }\n\n  const avgSynthetic = avg(matches.map((m) => m.average_synthetic_language_likelihood || 0));\n  const avgSteering = avg(matches.map((m) => m.average_narrative_steering_likelihood || 0));\n  const avgCoordination = avg(matches.map((m) => m.average_coordination_likelihood || 0));\n\n  return {\n    baseline_context: `compared against ${matches.length} subreddit baseline(s)`,\n    steering_delta: round3((cluster.average_narrative_steering_likelihood || 0) - avgSteering),\n    coordination_delta: round3((cluster.average_coordination_likelihood || 0) - avgCoordination),\n    synthetic_delta: round3((cluster.average_synthetic_language_likelihood || 0) - avgSynthetic)\n  };\n}\n"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "import \\{ detectNarratives \\} from '\\.\\./\\.\\./\\.\\./packages/narratives/src/index\\.js';\\nimport \\{ detectClusters \\} from '\\.\\./\\.\\./\\.\\./packages/cluster/src/index\\.js';",
+      "flags": "",
+      "replace": "import { detectNarratives } from '../../../packages/narratives/src/index.js';\nimport { detectClusters } from '../../../packages/cluster/src/index.js';\nimport { buildBaselines, getBaselineForSubreddit, compareClusterToBaselines } from '../../../packages/baseline/src/index.js';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/clusters'\\) \\{\\n    return json\\(res, 200, detectClusters\\(listPosts\\(\\), listAnalysis\\(\\)\\)\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (url.pathname === '/clusters') {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const baselines = buildBaselines(posts, analyses);\n    const clusters = detectClusters(posts, analyses).map((cluster) => ({\n      ...cluster,\n      baseline: compareClusterToBaselines(cluster, baselines)\n    }));\n    return json(res, 200, clusters);\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(parts\\[0\\] === 'clusters' && parts\\[1\\]\\) \\{\\n    const item = detectClusters\\(listPosts\\(\\), listAnalysis\\(\\)\\)\\.find\\(\\(x\\) => x\\.id === parts\\[1\\]\\);\\n    return item \\? json\\(res, 200, item\\) : notFound\\(res\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (parts[0] === 'clusters' && parts[1]) {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const baselines = buildBaselines(posts, analyses);\n    const item = detectClusters(posts, analyses)\n      .map((cluster) => ({ ...cluster, baseline: compareClusterToBaselines(cluster, baselines) }))\n      .find((x) => x.id === parts[1]);\n    return item ? json(res, 200, item) : notFound(res);\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/summary'\\) \\{\\n    return json\\(res, 200, summarize\\(listAnalysis\\(\\)\\)\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (url.pathname === '/summary') {\n    return json(res, 200, summarize(listAnalysis()));\n  }\n\n  if (url.pathname === '/baselines') {\n    return json(res, 200, buildBaselines(listPosts(), listAnalysis()));\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(parts\\[0\\] === 'narratives' && parts\\[1\\]\\) \\{\\n    const item = detectNarratives\\(listPosts\\(\\)\\)\\.find\\(\\(x\\) => x\\.id === parts\\[1\\]\\);\\n    return item \\? json\\(res, 200, item\\) : notFound\\(res\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (parts[0] === 'narratives' && parts[1]) {\n    const item = detectNarratives(listPosts()).find((x) => x.id === parts[1]);\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  if (parts[0] === 'baselines' && parts[1]) {\n    const item = getBaselineForSubreddit(parts[1], listPosts(), listAnalysis());\n    return item ? json(res, 200, item) : notFound(res);\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "routes: \\['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id'\\]",
+      "flags": "",
+      "replace": "routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id']"
+    },
+    {
+      "action": "append_file",
+      "path": "README.md",
+      "backup": true,
+      "content": "\n## baseline routes\n\n- `/baselines` - subreddit-local averages and common keywords\n- `/baselines/:subreddit` - one subreddit baseline\n- cluster responses now include simple baseline deltas\n"
+    }
+  ]
+}

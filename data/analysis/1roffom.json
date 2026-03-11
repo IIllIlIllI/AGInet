@@ -1,0 +1,49 @@
+{
+  "id": "1roffom",
+  "post": {
+    "id": "1roffom",
+    "subreddit": "news",
+    "author": "SJK_007",
+    "title": "‘Dark, like our future’: Iranians describe scenes of catastrophe after Tehran’s oil depots bombed",
+    "body": "",
+    "created_at": "2026-03-08T20:25:15.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1roffom/dark_like_our_future_iranians_describe_scenes_of/",
+    "score": 169,
+    "num_comments": 30,
+    "url": "https://www.theguardian.com/world/2026/mar/08/dark-like-our-future-iranians-describe-scenes-of-catastrophe-after-tehrans-oil-depots-bombed",
+    "first_seen_at": "2026-03-08T21:21:11.545Z",
+    "last_seen_at": "2026-03-08T21:37:46.896Z",
+    "seen_count": 7,
+    "updated_at": "2026-03-08T21:37:46.896Z"
+  },
+  "features": {
+    "id": "1roffom",
+    "subreddit": "news",
+    "token_count": 15,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 15,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1roffom",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T21:37:46.897Z",
+  "analysis_count": 7
+}

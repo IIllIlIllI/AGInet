@@ -1,0 +1,167 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+const ROOT = path.resolve(process.env.HOME || '.', 'projects', 'truth-lens');
+const DATA_DIR = path.join(ROOT, 'data');
+const POSTS_DIR = path.join(DATA_DIR, 'posts');
+const ANALYSIS_DIR = path.join(DATA_DIR, 'analysis');
+const STATE_DIR = path.join(DATA_DIR, 'state');
+const INGEST_STATE_FILE = path.join(STATE_DIR, 'ingest-state.json');
+
+function ensureDir(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+
+function writeJson(file, value) {
+  fs.writeFileSync(file, JSON.stringify(value, null, 2));
+}
+
+function safeReadJson(file, fallback) {
+  if (!fs.existsSync(file)) return fallback;
+  try {
+    return readJson(file);
+  } catch {
+    return fallback;
+  }
+}
+
+export function savePost(post) {
+  ensureDir(POSTS_DIR);
+  const file = path.join(POSTS_DIR, `${post.id}.json`);
+  const now = new Date().toISOString();
+
+  if (fs.existsSync(file)) {
+    const existing = readJson(file);
+    const merged = {
+      ...existing,
+      ...post,
+      first_seen_at: existing.first_seen_at || now,
+      last_seen_at: now,
+      seen_count: Number(existing.seen_count || 1) + 1,
+      updated_at: now
+    };
+    writeJson(file, merged);
+    return { status: 'updated', post: merged };
+  }
+
+  const fresh = {
+    ...post,
+    first_seen_at: now,
+    last_seen_at: now,
+    seen_count: 1,
+    updated_at: now
+  };
+  writeJson(file, fresh);
+  return { status: 'created', post: fresh };
+}
+
+export function getPost(id) {
+  const file = path.join(POSTS_DIR, `${id}.json`);
+  if (!fs.existsSync(file)) return null;
+  return readJson(file);
+}
+
+export function listPosts() {
+  ensureDir(POSTS_DIR);
+  return fs.readdirSync(POSTS_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .sort()
+    .map((f) => readJson(path.join(POSTS_DIR, f)));
+}
+
+export function saveAnalysis(result) {
+  ensureDir(ANALYSIS_DIR);
+  const file = path.join(ANALYSIS_DIR, `${result.id}.json`);
+  const now = new Date().toISOString();
+
+  if (fs.existsSync(file)) {
+    const existing = readJson(file);
+    const merged = {
+      ...existing,
+      ...result,
+      analyzed_at: now,
+      analysis_count: Number(existing.analysis_count || 1) + 1
+    };
+    writeJson(file, merged);
+    return merged;
+  }
+
+  const fresh = {
+    ...result,
+    analyzed_at: now,
+    analysis_count: 1
+  };
+  writeJson(file, fresh);
+  return fresh;
+}
+
+export function getAnalysis(id) {
+  const file = path.join(ANALYSIS_DIR, `${id}.json`);
+  if (!fs.existsSync(file)) return null;
+  return readJson(file);
+}
+
+export function listAnalysis() {
+  ensureDir(ANALYSIS_DIR);
+  return fs.readdirSync(ANALYSIS_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .sort()
+    .map((f) => readJson(path.join(ANALYSIS_DIR, f)));
+}
+
+export function getIngestState() {
+  ensureDir(STATE_DIR);
+  return safeReadJson(INGEST_STATE_FILE, {
+    last_run_at: null,
+    subreddits: {}
+  });
+}
+
+export function updateIngestState(subreddit, info = {}) {
+  ensureDir(STATE_DIR);
+  const state = getIngestState();
+  const now = new Date().toISOString();
+
+  state.last_run_at = now;
+  state.subreddits[subreddit] = {
+    ...(state.subreddits[subreddit] || {}),
+    ...info,
+    updated_at: now
+  };
+
+function listRecentPosts(limit = 10) {
+  return listPosts()
+    .sort((a, b) => {
+      const ax = new Date(a.last_seen_at || a.updated_at || a.created_at || 0).getTime();
+      const bx = new Date(b.last_seen_at || b.updated_at || b.created_at || 0).getTime();
+      return bx - ax;
+    })
+    .slice(0, limit);
+}
+
+function listNewPostsSinceLastRun(limit = 10) {
+  const state = getIngestState();
+  const lastRun = state?.last_run_at ? new Date(state.last_run_at).getTime() : 0;
+
+  return listPosts()
+    .filter((p) => {
+      const firstSeen = new Date(p.first_seen_at || 0).getTime();
+      return firstSeen >= lastRun;
+    })
+    .sort((a, b) => {
+      const ax = new Date(a.first_seen_at || 0).getTime();
+      const bx = new Date(b.first_seen_at || 0).getTime();
+      return bx - ax;
+    })
+    .slice(0, limit);
+}
+
+  writeJson(INGEST_STATE_FILE, state);
+  return state;
+}
+module.exports.listRecentPosts = listRecentPosts;
+module.exports.listNewPostsSinceLastRun = listNewPostsSinceLastRun;

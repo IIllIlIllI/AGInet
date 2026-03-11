@@ -1,0 +1,47 @@
+{
+  "id": "1rnxe9e",
+  "post": {
+    "id": "1rnxe9e",
+    "subreddit": "news",
+    "author": "Hour-Passenger-8513",
+    "title": "U.S. pressing Sri Lanka not to repatriate Iranian crew and survivors from sunken ship, memo says",
+    "body": "",
+    "created_at": "2026-03-08T06:24:33.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1rnxe9e/us_pressing_sri_lanka_not_to_repatriate_iranian/",
+    "score": 985,
+    "num_comments": 216,
+    "url": "https://www.thehindu.com/news/international/us-pressing-sri-lanka-not-to-repatriate-iranian-crew-and-survivors-from-sunken-ship-memo-says/article70714562.ece",
+    "first_seen_at": "2026-03-08T15:52:05.120Z",
+    "last_seen_at": "2026-03-08T17:06:54.062Z",
+    "seen_count": 6,
+    "updated_at": "2026-03-08T17:06:54.062Z"
+  },
+  "features": {
+    "id": "1rnxe9e",
+    "subreddit": "news",
+    "token_count": 17,
+    "sentence_count": 3,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 5.67,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rnxe9e",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.45,
+    "confidence_band": "moderate",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T17:06:54.064Z",
+  "analysis_count": 6
+}

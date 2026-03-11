@@ -1,0 +1,79 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+CHECKPOINT_ROOT="$ROOT/checkpoints"
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+LABEL="$1"
+
+if [ -n "$LABEL" ]; then
+  SAFE_LABEL="$(printf '%s' "$LABEL" | tr ' /:' '---')"
+  NAME="${STAMP}-${SAFE_LABEL}"
+else
+  NAME="${STAMP}"
+fi
+
+DEST="$CHECKPOINT_ROOT/$NAME"
+
+mkdir -p "$DEST"
+
+copy_if_exists() {
+  local src="$1"
+  local rel="${src#$ROOT/}"
+  if [ -f "$src" ]; then
+    mkdir -p "$DEST/$(dirname "$rel")"
+    cp "$src" "$DEST/$rel"
+    echo "[saved] $rel"
+  fi
+}
+
+write_manifest() {
+  cat > "$DEST/manifest.txt" <<EOF
+checkpoint_name=$NAME
+created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+root=$ROOT
+label=$LABEL
+EOF
+}
+
+echo
+echo "=== Truth Lens Save Checkpoint ==="
+echo "Destination: $DEST"
+echo
+
+write_manifest
+
+# Core baseline files
+copy_if_exists "$ROOT/apps/api/src/server.ts"
+copy_if_exists "$ROOT/packages/dashboard/src/index.js"
+copy_if_exists "$ROOT/packages/storage/src/storage.js"
+copy_if_exists "$ROOT/packages/graphfull/src/index.js"
+
+# Core analysis packages
+copy_if_exists "$ROOT/packages/narratives/src/index.js"
+copy_if_exists "$ROOT/packages/cluster/src/index.js"
+copy_if_exists "$ROOT/packages/baseline/src/index.js"
+copy_if_exists "$ROOT/packages/spread/src/index.js"
+copy_if_exists "$ROOT/packages/findings/src/index.js"
+
+# Worker and fetch layer
+copy_if_exists "$ROOT/apps/worker/src/worker.ts"
+copy_if_exists "$ROOT/packages/reddit/src/fetch.ts"
+
+# Optional modules, only if present
+copy_if_exists "$ROOT/packages/news/src/index.js"
+copy_if_exists "$ROOT/packages/outbreak/src/index.js"
+copy_if_exists "$ROOT/packages/signatures/src/index.js"
+copy_if_exists "$ROOT/packages/tracing/src/index.js"
+copy_if_exists "$ROOT/packages/fingerprints/src/index.js"
+
+# Tooling
+copy_if_exists "$ROOT/tools/read-agent/read-repo.mjs"
+copy_if_exists "$ROOT/tools/read-agent/fix-repo.mjs"
+copy_if_exists "$ROOT/tools/bin/tl-heal"
+copy_if_exists "$ROOT/tools/bin/tl-cycle-safe"
+
+echo
+echo "[done] checkpoint saved"
+echo "Path: $DEST"

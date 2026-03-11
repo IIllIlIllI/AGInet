@@ -1,0 +1,15 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+PATCH_FILE="$(tl-lastpatch)"
+
+echo "[cycle] applying $PATCH_FILE"
+tl-write "$PATCH_FILE"
+
+echo
+echo "[cycle] diff"
+tl-diff || true
+
+echo
+echo "[cycle] testing"
+tl-test

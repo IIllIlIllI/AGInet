@@ -1,0 +1,47 @@
+{
+  "id": "1rod9zd",
+  "post": {
+    "id": "1rod9zd",
+    "subreddit": "news",
+    "author": "Discarded_Twix_Bar",
+    "title": "US suspects China in breach of FBI surveillance network, WSJ reports",
+    "body": "",
+    "created_at": "2026-03-08T19:03:57.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1rod9zd/us_suspects_china_in_breach_of_fbi_surveillance/",
+    "score": 427,
+    "num_comments": 97,
+    "url": "https://www.reuters.com/sustainability/boards-policy-regulation/us-suspects-china-breach-fbi-surveillance-network-wsj-reports-2026-03-06/",
+    "first_seen_at": "2026-03-08T21:21:11.548Z",
+    "last_seen_at": "2026-03-08T21:37:46.904Z",
+    "seen_count": 7,
+    "updated_at": "2026-03-08T21:37:46.904Z"
+  },
+  "features": {
+    "id": "1rod9zd",
+    "subreddit": "news",
+    "token_count": 11,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 11,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rod9zd",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.25,
+    "confidence_band": "low",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T21:37:46.905Z",
+  "analysis_count": 7
+}

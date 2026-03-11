@@ -1,0 +1,27 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+INSTR_DIR="$ROOT/tools/write-agent/instructions"
+
+mkdir -p "$INSTR_DIR"
+
+LABEL="${1:-patch}"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+FILE="$INSTR_DIR/${STAMP}-${LABEL}.json"
+
+cat > "$FILE" <<'EOF'
+{
+  "operations": [
+    {
+      "action": "write_file",
+      "path": "REPLACE_ME.txt",
+      "backup": true,
+      "content": "replace me\n"
+    }
+  ]
+}
+EOF
+
+echo "[newpatch] $FILE"
+nano "$FILE"

@@ -1,0 +1,55 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+SERVER="$ROOT/apps/api/src/server.ts"
+
+echo "[repairing prism api]"
+
+cp "$SERVER" "$SERVER.bak.$(date +%s)"
+
+node <<'NODE'
+const fs=require("fs")
+const path=process.env.HOME+"/projects/truth-lens/apps/api/src/server.ts"
+
+let code=fs.readFileSync(path,"utf8")
+
+// remove broken prism route if partially inserted
+code=code.replace(/if\s*\(url\.pathname\s*===\s*['"]\/prism['"]\)[\s\S]*?\n\s*\}/g,"")
+
+// ensure import exists
+if(!code.includes("buildPrismProfile")){
+code="import { buildPrismProfile, scorePrism } from '../../../packages/prism/src/index.js'\n"+code
+}
+
+// add safe route before final closing brace
+const prismRoute=`
+
+  if (url.pathname === '/prism') {
+    const posts=listPosts()
+
+    const results=posts.map(p=>{
+      const profile=buildPrismProfile(p.text || "")
+      return {
+        id:p.id,
+        prism:scorePrism(profile)
+      }
+    })
+
+    return json(res,200,results)
+  }
+
+`
+
+// insert before analysis route
+code=code.replace(
+"if (url.pathname === '/analysis') {",
+prismRoute+"\n  if (url.pathname === '/analysis') {"
+)
+e 17
+fs.writeFileSync(path,code)
+
+NODE
+
+echo
+echo "[prism a

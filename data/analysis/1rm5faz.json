@@ -1,0 +1,49 @@
+{
+  "id": "1rm5faz",
+  "post": {
+    "id": "1rm5faz",
+    "subreddit": "technology",
+    "author": "Logical_Welder3467",
+    "title": "Khamenei’s fall exposes China’s military AI lag versus US, Beijing adviser warns",
+    "body": "",
+    "created_at": "2026-03-06T05:32:11.000Z",
+    "permalink": "https://www.reddit.com/r/technology/comments/1rm5faz/khameneis_fall_exposes_chinas_military_ai_lag/",
+    "score": 0,
+    "num_comments": 7,
+    "url": "https://www.scmp.com/news/china/diplomacy/article/3345408/khameneis-fall-exposes-chinas-military-ai-lag-versus-us-beijing-adviser-warns",
+    "first_seen_at": "2026-03-08T15:52:20.683Z",
+    "last_seen_at": "2026-03-08T15:52:20.683Z",
+    "seen_count": 1,
+    "updated_at": "2026-03-08T15:52:20.683Z"
+  },
+  "features": {
+    "id": "1rm5faz",
+    "subreddit": "technology",
+    "token_count": 14,
+    "sentence_count": 1,
+    "lexical_diversity": 0.9285714285714286,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 14,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rm5faz",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T15:52:20.685Z",
+  "analysis_count": 1
+}

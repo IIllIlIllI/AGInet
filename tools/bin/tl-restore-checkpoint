@@ -1,0 +1,90 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+CHECKPOINT_ROOT="$ROOT/checkpoints"
+
+if [ -z "$1" ]; then
+  echo "Usage:"
+  echo "  tl-restore-checkpoint <checkpoint-folder-name>"
+  echo
+  echo "Available checkpoints:"
+  ls -1 "$CHECKPOINT_ROOT" 2>/dev/null || true
+  exit 1
+fi
+
+NAME="$1"
+SRC="$CHECKPOINT_ROOT/$NAME"
+
+if [ ! -d "$SRC" ]; then
+  echo "[error] checkpoint not found: $SRC"
+  echo
+  echo "Available checkpoints:"
+  ls -1 "$CHECKPOINT_ROOT" 2>/dev/null || true
+  exit 1
+fi
+
+backup_current() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    cp "$file" "$file.bak.restore.$(date +%Y%m%d-%H%M%S)"
+    echo "[backup] $file"
+  fi
+}
+
+restore_file() {
+  local rel="$1"
+  local from="$SRC/$rel"
+  local to="$ROOT/$rel"
+
+  if [ -f "$from" ]; then
+    mkdir -p "$(dirname "$to")"
+    backup_current "$to"
+    cp "$from" "$to"
+    echo "[restored] $rel"
+  fi
+}
+
+echo
+echo "=== Truth Lens Restore Checkpoint ==="
+echo "Source: $SRC"
+echo
+
+# Core baseline files
+restore_file "apps/api/src/server.ts"
+restore_file "packages/dashboard/src/index.js"
+restore_file "packages/storage/src/storage.js"
+restore_file "packages/graphfull/src/index.js"
+
+# Core analysis packages
+restore_file "packages/narratives/src/index.js"
+restore_file "packages/cluster/src/index.js"
+restore_file "packages/baseline/src/index.js"
+restore_file "packages/spread/src/index.js"
+restore_file "packages/findings/src/index.js"
+
+# Worker and fetch layer
+restore_file "apps/worker/src/worker.ts"
+restore_file "packages/reddit/src/fetch.ts"
+
+# Optional modules
+restore_file "packages/news/src/index.js"
+restore_file "packages/outbreak/src/index.js"
+restore_file "packages/signatures/src/index.js"
+restore_file "packages/tracing/src/index.js"
+restore_file "packages/fingerprints/src/index.js"
+
+# Tooling
+restore_file "tools/read-agent/read-repo.mjs"
+restore_file "tools/read-agent/fix-repo.mjs"
+restore_file "tools/bin/tl-heal"
+restore_file "tools/bin/tl-cycle-safe"
+
+echo
+echo "[done] checkpoint restored"
+echo
+echo "Next:"
+echo "  tl-doctor"
+echo "  cd $ROOT"
+echo "  node apps/worker/src/worker.ts"
+echo "  node apps/api/src/server.ts"

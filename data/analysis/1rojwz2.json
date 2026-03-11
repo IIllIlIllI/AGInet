@@ -1,0 +1,47 @@
+{
+  "id": "1rojwz2",
+  "post": {
+    "id": "1rojwz2",
+    "subreddit": "gaming",
+    "author": "anarxi",
+    "title": "RMA’ing 5090 so using 5060ti temp. I know size difference is known, but still LOL!",
+    "body": "",
+    "created_at": "2026-03-08T23:24:53.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1rojwz2/rmaing_5090_so_using_5060ti_temp_i_know_size/",
+    "score": 18,
+    "num_comments": 4,
+    "url": "https://i.redd.it/vgjs137unwng1.jpeg",
+    "first_seen_at": "2026-03-08T23:31:58.458Z",
+    "last_seen_at": "2026-03-08T23:31:58.458Z",
+    "seen_count": 1,
+    "updated_at": "2026-03-08T23:31:58.458Z"
+  },
+  "features": {
+    "id": "1rojwz2",
+    "subreddit": "gaming",
+    "token_count": 16,
+    "sentence_count": 2,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 1,
+    "exclamation_count": 1,
+    "question_count": 0,
+    "mean_sentence_length": 8,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rojwz2",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.45,
+    "confidence_band": "moderate",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T23:31:58.459Z",
+  "analysis_count": 1
+}

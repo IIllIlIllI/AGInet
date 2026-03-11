@@ -1,0 +1,47 @@
+{
+  "id": "1rojwx8",
+  "post": {
+    "id": "1rojwx8",
+    "subreddit": "news",
+    "author": "deraser",
+    "title": "Iran names Mojtaba Khamenei to succeed his slain father as supreme leader",
+    "body": "",
+    "created_at": "2026-03-08T23:24:50.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1rojwx8/iran_names_mojtaba_khamenei_to_succeed_his_slain/",
+    "score": 8,
+    "num_comments": 7,
+    "url": "https://apnews.com/article/iran-israel-us-march-8-2026-f0b20dbffaea9351ae1e54183ffe53ff",
+    "first_seen_at": "2026-03-08T23:31:58.104Z",
+    "last_seen_at": "2026-03-08T23:31:58.104Z",
+    "seen_count": 1,
+    "updated_at": "2026-03-08T23:31:58.104Z"
+  },
+  "features": {
+    "id": "1rojwx8",
+    "subreddit": "news",
+    "token_count": 12,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 12,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rojwx8",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.25,
+    "confidence_band": "low",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T23:31:58.105Z",
+  "analysis_count": 1
+}

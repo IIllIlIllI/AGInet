@@ -1,0 +1,47 @@
+{
+  "id": "1rogu64",
+  "post": {
+    "id": "1rogu64",
+    "subreddit": "news",
+    "author": "TheOfficialSlimber",
+    "title": "Alabama set to execute man who did not kill anyone",
+    "body": "",
+    "created_at": "2026-03-08T21:20:24.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1rogu64/alabama_set_to_execute_man_who_did_not_kill_anyone/",
+    "score": 764,
+    "num_comments": 115,
+    "url": "https://www.nbcnews.com/news/us-news/alabama-set-execute-man-not-kill-anyone-rcna262113",
+    "first_seen_at": "2026-03-08T21:21:11.537Z",
+    "last_seen_at": "2026-03-08T23:31:58.116Z",
+    "seen_count": 11,
+    "updated_at": "2026-03-08T23:31:58.116Z"
+  },
+  "features": {
+    "id": "1rogu64",
+    "subreddit": "news",
+    "token_count": 10,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 10,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rogu64",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.25,
+    "confidence_band": "low",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T23:31:58.117Z",
+  "analysis_count": 11
+}

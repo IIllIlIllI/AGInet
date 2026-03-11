@@ -1,0 +1,925 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+SERVER="$ROOT/apps/api/src/server.ts"
+DASH="$ROOT/packages/dashboard/src/index.js"
+STORAGE="$ROOT/packages/storage/src/storage.js"
+GRAPH="$ROOT/packages/graphfull/src/index.js"
+DOCTOR="node $ROOT/tools/read-agent/read-repo.mjs doctor"
+
+REBUILD_CORE=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --rebuild-core)
+      REBUILD_CORE="1"
+      ;;
+  esac
+done
+
+backup_file() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    cp "$file" "$file.bak.$(date +%Y%m%d-%H%M%S)"
+    echo "[backup] $file"
+  fi
+}
+
+have_file() {
+  [ -f "$1" ]
+}
+
+remove_module_from_server() {
+  local module_name="$1"
+  echo "[heal] removing broken references to $module_name"
+
+  sed -i "/packages\/$module_name\/src\/index.js/d" "$SERVER"
+  sed -i "/url.pathname === '\/$module_name'/,/^  }$/d" "$SERVER"
+  sed -i "/parts\[0\] === '$module_name'/,/^  }$/d" "$SERVER"
+  sed -i "/'\/$module_name'/d" "$SERVER"
+  sed -i "/'\/$module_name\/:id'/d" "$SERVER"
+  sed -i "/$module_name:/d" "$SERVER"
+}
+
+remove_dashboard_card_refs() {
+  local var_name="$1"
+  local html_name="$2"
+  local card_title="$3"
+
+  if [ -f "$DASH" ]; then
+    sed -i "/const $var_name = data\.$var_name || \[\];/d" "$DASH"
+    sed -i "/const $html_name = list(/,/^  }));$/d" "$DASH"
+    sed -i "/\${card('$card_title', $html_name)}/d" "$DASH"
+  fi
+}
+
+rebuild_core() {
+  echo "[rebuild] restoring core baseline"
+
+  mkdir -p "$(dirname "$SERVER")"
+  mkdir -p "$(dirname "$DASH")"
+  mkdir -p "$(dirname "$STORAGE")"
+  mkdir -p "$(dirname "$GRAPH")"
+
+  backup_file "$SERVER"
+  backup_file "$DASH"
+  backup_file "$STORAGE"
+  backup_file "$GRAPH"
+
+  cat > "$STORAGE" <<'EOF'
+import fs from 'node:fs';
+import path from 'node:path';
+
+const ROOT = path.resolve(process.env.HOME || '.', 'projects', 'truth-lens');
+const DATA_DIR = path.join(ROOT, 'data');
+const POSTS_DIR = path.join(DATA_DIR, 'posts');
+const ANALYSIS_DIR = path.join(DATA_DIR, 'analysis');
+const STATE_DIR = path.join(DATA_DIR, 'state');
+const INGEST_STATE_FILE = path.join(STATE_DIR, 'ingest-state.json');
+
+function ensureDir(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+
+function writeJson(file, value) {
+  fs.writeFileSync(file, JSON.stringify(value, null, 2));
+}
+
+function safeReadJson(file, fallback) {
+  if (!fs.existsSync(file)) return fallback;
+  try {
+    return readJson(file);
+  } catch {
+    return fallback;
+  }
+}
+
+export function savePost(post) {
+  ensureDir(POSTS_DIR);
+  const file = path.join(POSTS_DIR, `${post.id}.json`);
+  const now = new Date().toISOString();
+
+  if (fs.existsSync(file)) {
+    const existing = readJson(file);
+    const merged = {
+      ...existing,
+      ...post,
+      first_seen_at: existing.first_seen_at || now,
+      last_seen_at: now,
+      seen_count: Number(existing.seen_count || 1) + 1,
+      updated_at: now
+    };
+    writeJson(file, merged);
+    return { status: 'updated', post: merged };
+  }
+
+  const fresh = {
+    ...post,
+    first_seen_at: now,
+    last_seen_at: now,
+    seen_count: 1,
+    updated_at: now
+  };
+  writeJson(file, fresh);
+  return { status: 'created', post: fresh };
+}
+
+export function getPost(id) {
+  const file = path.join(POSTS_DIR, `${id}.json`);
+  if (!fs.existsSync(file)) return null;
+  return readJson(file);
+}
+
+export function listPosts() {
+  ensureDir(POSTS_DIR);
+  return fs.readdirSync(POSTS_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .sort()
+    .map((f) => readJson(path.join(POSTS_DIR, f)));
+}
+
+export function saveAnalysis(result) {
+  ensureDir(ANALYSIS_DIR);
+  const file = path.join(ANALYSIS_DIR, `${result.id}.json`);
+  const now = new Date().toISOString();
+
+  if (fs.existsSync(file)) {
+    const existing = readJson(file);
+    const merged = {
+      ...existing,
+      ...result,
+      analyzed_at: now,
+      analysis_count: Number(existing.analysis_count || 1) + 1
+    };
+    writeJson(file, merged);
+    return merged;
+  }
+
+  const fresh = {
+    ...result,
+    analyzed_at: now,
+    analysis_count: 1
+  };
+  writeJson(file, fresh);
+  return fresh;
+}
+
+export function getAnalysis(id) {
+  const file = path.join(ANALYSIS_DIR, `${id}.json`);
+  if (!fs.existsSync(file)) return null;
+  return readJson(file);
+}
+
+export function listAnalysis() {
+  ensureDir(ANALYSIS_DIR);
+  return fs.readdirSync(ANALYSIS_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .sort()
+    .map((f) => readJson(path.join(ANALYSIS_DIR, f)));
+}
+
+export function getIngestState() {
+  ensureDir(STATE_DIR);
+  return safeReadJson(INGEST_STATE_FILE, {
+    last_run_at: null,
+    subreddits: {}
+  });
+}
+
+export function updateIngestState(subreddit, info = {}) {
+  ensureDir(STATE_DIR);
+  const state = getIngestState();
+  const now = new Date().toISOString();
+
+  state.last_run_at = now;
+  state.subreddits[subreddit] = {
+    ...(state.subreddits[subreddit] || {}),
+    ...info,
+    updated_at: now
+  };
+
+  writeJson(INGEST_STATE_FILE, state);
+  return state;
+}
+
+export function listRecentPosts(limit = 10) {
+  return listPosts()
+    .sort((a, b) => {
+      const ax = new Date(a.last_seen_at || a.updated_at || a.created_at || 0).getTime();
+      const bx = new Date(b.last_seen_at || b.updated_at || b.created_at || 0).getTime();
+      return bx - ax;
+    })
+    .slice(0, limit);
+}
+
+export function listNewPostsSinceLastRun(limit = 10) {
+  const state = getIngestState();
+  const lastRun = state?.last_run_at ? new Date(state.last_run_at).getTime() : 0;
+
+  return listPosts()
+    .filter((p) => {
+      const firstSeen = new Date(p.first_seen_at || 0).getTime();
+      return firstSeen >= lastRun;
+    })
+    .sort((a, b) => {
+      const ax = new Date(a.first_seen_at || 0).getTime();
+      const bx = new Date(b.first_seen_at || 0).getTime();
+      return bx - ax;
+    })
+    .slice(0, limit);
+}
+EOF
+
+  cat > "$DASH" <<'EOF'
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function card(title, body) {
+  return `<section class="card"><h2>${esc(title)}</h2>${body}</section>`;
+}
+
+function list(items) {
+  if (!items || !items.length) return '<p class="muted">No items yet.</p>';
+  return `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+}
+
+function topProTip(clusterFindings, narrativeFindings) {
+  const topCluster = (clusterFindings || [])[0];
+  const topNarrative = (narrativeFindings || [])[0];
+
+  if (topCluster) {
+    return {
+      headline: 'Top cluster signal',
+      body: topCluster.summary || 'A suspicious cluster was detected.',
+      caution: (topCluster.cautions || [])[0] || 'This is contextual guidance, not proof.'
+    };
+  }
+
+  if (topNarrative) {
+    return {
+      headline: 'Top narrative signal',
+      body: topNarrative.summary || 'A repeated narrative was detected.',
+      caution: (topNarrative.cautions || [])[0] || 'This is contextual guidance, not proof.'
+    };
+  }
+
+  return {
+    headline: 'No major signal yet',
+    body: 'The dashboard has not identified a strong cluster or narrative from the current local dataset.',
+    caution: 'More data improves interpretation.'
+  };
+}
+
+function timelineMini(item) {
+  const bins = (item?.timeline || []).slice(0, 6);
+  if (!bins.length) return '<div class="muted">No timeline yet.</div>';
+  return `<div class="timeline">${bins.map((b) => `<span class="bin"><strong>${esc(b.count)}</strong><br><small>${esc(b.bucket_start)}</small></span>`).join('')}</div>`;
+}
+
+function sortClusters(items, sort) {
+  const arr = [...(items || [])];
+  if (sort === 'size') {
+    return arr.sort((a, b) => (b.cluster?.size || 0) - (a.cluster?.size || 0) || (b.cluster?.suspicion_rank || 0) - (a.cluster?.suspicion_rank || 0));
+  }
+  return arr.sort((a, b) => (b.cluster?.suspicion_rank || 0) - (a.cluster?.suspicion_rank || 0) || (b.cluster?.size || 0) - (a.cluster?.size || 0));
+}
+
+function filterBySubreddit(items, subreddit) {
+  if (!subreddit) return items || [];
+  return (items || []).filter((x) => (x.cluster?.subreddits || x.spread?.subreddits || []).includes(subreddit));
+}
+
+export function renderDashboard(data, opts = {}) {
+  const summary = data.summary || {};
+  const sort = opts.sort || 'rank';
+  const subreddit = opts.subreddit || '';
+  const q = opts.q || '';
+  const rawClusterFindings = data.cluster_findings || [];
+  const rawNarrativeFindings = data.narrative_findings || [];
+  const spread = data.spread || [];
+  const recentPosts = data.recent_posts || [];
+  const newSinceLastRun = data.new_since_last_run || [];
+  const ingestState = data.ingest_state || {};
+
+  const spreadMap = new Map((spread || []).map((x) => [x.id, x]));
+  const clusterMap = new Map((data.clusters || []).map((x) => [x.id, x]));
+
+  const clusterFindings = sortClusters(
+    filterBySubreddit(rawClusterFindings.map((f) => ({ ...f, cluster: clusterMap.get(f.id) })), subreddit),
+    sort
+  ).slice(0, 8);
+
+  const narrativeFindings = filterBySubreddit(
+    rawNarrativeFindings.map((f) => ({ ...f, spread: spreadMap.get(f.id) })),
+    subreddit
+  ).slice(0, 8);
+
+  const baselines = subreddit
+    ? (data.baselines || []).filter((b) => b.subreddit === subreddit)
+    : (data.baselines || []).slice(0, 8);
+
+  const tip = topProTip(clusterFindings, narrativeFindings);
+
+  const summaryHtml = `
+    <div class="grid cols-4">
+      <div class="metric"><div class="label">Posts</div><div class="value">${esc(summary.total_posts ?? 0)}</div></div>
+      <div class="metric"><div class="label">Avg Synthetic</div><div class="value">${esc(summary.average_synthetic_language_likelihood ?? 0)}</div></div>
+      <div class="metric"><div class="label">Avg Steering</div><div class="value">${esc(summary.average_narrative_steering_likelihood ?? 0)}</div></div>
+      <div class="metric"><div class="label">Avg Coordination</div><div class="value">${esc(summary.average_coordination_likelihood ?? 0)}</div></div>
+    </div>`;
+
+  const activityHtml = `
+    <p><strong>Last run:</strong> ${esc(ingestState.last_run_at || 'never')}</p>
+    ${list(Object.entries(ingestState.subreddits || {}).map(([sub, info]) =>
+      `<strong>r/${esc(sub)}</strong><br><span>fetched=${esc(info.fetched_count ?? 0)} created=${esc(info.created_count ?? 0)} updated=${esc(info.updated_count ?? 0)}</span>`
+    ))}
+  `;
+
+  const newPostsHtml = list(newSinceLastRun.map((p) =>
+    `<strong>${esc(p.title || p.id)}</strong><br><span>r/${esc(p.subreddit)} by ${esc(p.author)}</span><br><span class="muted">first_seen=${esc(p.first_seen_at || '')}</span>`
+  ));
+
+  const recentPostsHtml = list(recentPosts.map((p) =>
+    `<strong>${esc(p.title || p.id)}</strong><br><span>r/${esc(p.subreddit)} by ${esc(p.author)}</span><br><span class="muted">last_seen=${esc(p.last_seen_at || p.updated_at || '')} seen_count=${esc(p.seen_count ?? 0)}</span>`
+  ));
+
+  const controlsHtml = `
+    <form method="GET" action="/dashboard" class="controls">
+      <label>Sort
+        <select name="sort">
+          <option value="rank" ${sort === 'rank' ? 'selected' : ''}>Suspicion Rank</option>
+          <option value="size" ${sort === 'size' ? 'selected' : ''}>Cluster Size</option>
+        </select>
+      </label>
+      <label>Subreddit
+        <input type="text" name="subreddit" value="${esc(subreddit)}" placeholder="technology">
+      </label>
+      <label>Search
+        <input type="text" name="q" value="${esc(q)}" placeholder="trust">
+      </label>
+      <button type="submit">Apply</button>
+      <a class="button-link" href="/dashboard">Reset</a>
+    </form>`;
+
+  const proTipHtml = `
+    <div class="protip">
+      <div class="protip-label">PRO TIP</div>
+      <div class="protip-headline">${esc(tip.headline)}</div>
+      <div class="protip-body">${esc(tip.body)}</div>
+      <div class="muted">${esc(tip.caution)}</div>
+    </div>`;
+
+  const clustersHtml = list(clusterFindings.map((f) => {
+    const findings = (f.findings || []).slice(0, 3).map((x) => esc(x)).join(' • ');
+    const cluster = f.cluster || {};
+    return `<a href="/dashboard/cluster/${esc(f.id)}"><strong>${esc(f.label || f.id)}</strong></a><br><span>${esc(f.summary || '')}</span><br><span class="muted">rank=${esc(cluster.suspicion_rank ?? '')} size=${esc(cluster.size ?? '')} ${findings}</span>`;
+  }));
+
+  const narrativesHtml = list(narrativeFindings.map((f) => {
+    const findings = (f.findings || []).slice(0, 3).map((x) => esc(x)).join(' • ');
+    const s = f.spread || {};
+    return `<a href="/dashboard/narrative/${esc(f.id)}"><strong>${esc(f.label || f.id)}</strong></a><br><span>${esc(f.summary || '')}</span>${timelineMini(s)}<br><span class="muted">${findings}</span>`;
+  }));
+
+  const baselinesHtml = list(baselines.map((b) => {
+    const kws = (b.common_keywords || []).slice(0, 5).map((k) => esc(k.keyword)).join(', ');
+    return `<strong><a href="/dashboard?subreddit=${encodeURIComponent(b.subreddit)}">r/${esc(b.subreddit)}</a></strong><br><span>posts=${esc(b.post_count)} synthetic=${esc(b.average_synthetic_language_likelihood)} steering=${esc(b.average_narrative_steering_likelihood)} coordination=${esc(b.average_coordination_likelihood)}</span><br><span class="muted">keywords: ${kws}</span>`;
+  }));
+
+  const linksHtml = list([
+    '<a href="/dashboard">/dashboard</a>',
+    '<a href="/health">/health</a>',
+    '<a href="/summary">/summary</a>',
+    '<a href="/activity">/activity</a>',
+    '<a href="/findings">/findings</a>',
+    '<a href="/findings/clusters">/findings/clusters</a>',
+    '<a href="/findings/narratives">/findings/narratives</a>',
+    '<a href="/baselines">/baselines</a>',
+    '<a href="/spread">/spread</a>',
+    '<a href="/clusters">/clusters</a>',
+    '<a href="/narratives">/narratives</a>',
+    '<a href="/graph/full">/graph/full</a>',
+    '<a href="/dashboard/graph-full">/dashboard/graph-full</a>'
+  ]);
+
+  const searchHtml = q
+    ? card('Search Query', `<p>Current search: <strong>${esc(q)}</strong></p><p class="muted">Use the dashboard controls.</p>`)
+    : '';
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Truth Lens Dashboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #0b1020; color: #e8ecf1; }
+    h1 { margin-top: 0; font-size: 28px; }
+    h2 { margin: 0 0 10px 0; font-size: 18px; }
+    .muted { color: #9aa4b2; }
+    .grid { display: grid; gap: 12px; }
+    .cols-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .card { background: #121a2b; border: 1px solid #25314a; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .metric { background: #0f1727; border: 1px solid #23304a; border-radius: 12px; padding: 12px; }
+    .label { font-size: 12px; color: #9aa4b2; }
+    .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin-bottom: 10px; }
+    a { color: #8ec5ff; text-decoration: none; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    .controls label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+    input, select, button, .button-link { background: #0f1727; color: #e8ecf1; border: 1px solid #23304a; border-radius: 10px; padding: 8px 10px; }
+    button, .button-link { cursor: pointer; text-decoration: none; display: inline-block; }
+    .protip { background: linear-gradient(180deg, #15213a, #0f1727); border: 1px solid #35538a; border-radius: 14px; padding: 14px; }
+    .protip-label { font-size: 12px; color: #8ec5ff; font-weight: 700; letter-spacing: 0.08em; }
+    .protip-headline { font-size: 20px; font-weight: 700; margin-top: 6px; }
+    .protip-body { margin-top: 8px; margin-bottom: 8px; }
+    .timeline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 8px; }
+    .bin { background: #0f1727; border: 1px solid #23304a; border-radius: 8px; padding: 6px; min-width: 88px; }
+  </style>
+</head>
+<body>
+  ${card('PRO TIP', proTipHtml)}
+  <h1>Truth Lens Dashboard</h1>
+  <p class="muted">Local prototype dashboard for findings, baselines, narratives, and clusters.</p>
+  ${card('Summary', summaryHtml)}
+  ${card('Recent Activity', activityHtml)}
+  ${card('New Since Last Run', newPostsHtml)}
+  ${card('Recently Seen Posts', recentPostsHtml)}
+  ${card('Controls', controlsHtml)}
+  ${searchHtml}
+  ${card('Top Cluster Findings', clustersHtml)}
+  ${card('Top Narrative Findings', narrativesHtml)}
+  ${card('Subreddit Baselines', baselinesHtml)}
+  ${card('Routes', linksHtml)}
+</body>
+</html>`;
+}
+
+export function renderClusterDetail(data) {
+  const c = data.cluster || {};
+  const f = data.finding || {};
+  const baseline = c.baseline || {};
+  const related = (data.relatedNarratives || []).map((x) => `<li><a href="/dashboard/narrative/${esc(x.id)}">${esc(x.label || x.id)}</a></li>`).join('') || '<li class="muted">No related narratives.</li>';
+
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cluster Detail</title><style>body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#0b1020;color:#e8ecf1}.card{background:#121a2b;border:1px solid #25314a;border-radius:14px;padding:14px;margin-bottom:14px}a{color:#8ec5ff}.muted{color:#9aa4b2}ul{padding-left:18px}</style></head><body><p><a href="/dashboard">← Back to dashboard</a></p><div class="card"><h1>${esc(f.label || c.label || c.id)}</h1><p>${esc(f.summary || '')}</p><p class="muted">rank=${esc(c.suspicion_rank)} size=${esc(c.size)}</p></div><div class="card"><h2>Findings</h2><ul>${(f.findings || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div><div class="card"><h2>Baseline Context</h2><p>${esc(baseline.baseline_context || 'No baseline context')}</p><ul><li>steering delta: ${esc(baseline.steering_delta ?? 0)}</li><li>coordination delta: ${esc(baseline.coordination_delta ?? 0)}</li><li>synthetic delta: ${esc(baseline.synthetic_delta ?? 0)}</li></ul></div><div class="card"><h2>Members</h2><p>subreddits: ${esc((c.subreddits || []).join(', '))}</p><p>authors: ${esc((c.authors || []).join(', '))}</p><p>post_ids: ${esc((c.post_ids || []).join(', '))}</p></div><div class="card"><h2>Related Narratives</h2><ul>${related}</ul></div></body></html>`;
+}
+
+export function renderNarrativeDetail(data) {
+  const n = data.spread || {};
+  const f = data.finding || {};
+  const related = (data.relatedClusters || []).map((x) => `<li><a href="/dashboard/cluster/${esc(x.id)}">${esc(x.label || x.id)}</a></li>`).join('') || '<li class="muted">No related clusters.</li>';
+
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Narrative Detail</title><style>body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#0b1020;color:#e8ecf1}.card{background:#121a2b;border:1px solid #25314a;border-radius:14px;padding:14px;margin-bottom:14px}a{color:#8ec5ff}.muted{color:#9aa4b2}ul{padding-left:18px}.timeline{display:flex;gap:6px;flex-wrap:wrap}.bin{background:#0f1727;border:1px solid #23304a;border-radius:8px;padding:6px;min-width:88px}</style></head><body><p><a href="/dashboard">← Back to dashboard</a></p><div class="card"><h1>${esc(f.label || n.label || n.id)}</h1><p>${esc(f.summary || '')}</p><p class="muted">first_seen=${esc(n.first_seen)} last_seen=${esc(n.last_seen)} span_minutes=${esc(n.span_minutes)}</p></div><div class="card"><h2>Findings</h2><ul>${(f.findings || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div><div class="card"><h2>Spread</h2><p>subreddits: ${esc((n.subreddits || []).join(', '))}</p><p>authors: ${esc((n.authors || []).join(', '))}</p><p>compressed window: ${esc(n.time_compression_flag)}</p></div><div class="card"><h2>Timeline</h2><div class="timeline">${(n.timeline || []).map((b) => `<span class="bin"><strong>${esc(b.count)}</strong><br><small>${esc(b.bucket_start)}</small></span>`).join('')}</div></div><div class="card"><h2>Related Clusters</h2><ul>${related}</ul></div></body></html>`;
+}
+EOF
+
+  cat > "$GRAPH" <<'EOF'
+import { detectNarratives } from '../../narratives/src/index.js';
+
+export async function buildFullGraph(posts = [], analyses = []) {
+  const narratives = detectNarratives(posts);
+  const nodes = [];
+  const edges = [];
+
+  for (const n of narratives) {
+    nodes.push({
+      id: n.id,
+      type: 'narrative',
+      label: n.label
+    });
+  }
+
+  return { nodes, edges };
+}
+
+export function renderFullGraphPage(graph) {
+  const nodes = graph.nodes || [];
+  let list = '';
+
+  for (const n of nodes) {
+    list += '<li><b>' + n.type + '</b> — ' + n.label + '</li>';
+  }
+
+  return '<!doctype html>' +
+    '<html>' +
+    '<head>' +
+    "<meta charset=\"utf-8\">" +
+    '<title>Truth Lens Graph</title>' +
+    '<style>' +
+    'body{font-family:system-ui;background:#0b1020;color:#e8ecf1;padding:20px}' +
+    '</style>' +
+    '</head>' +
+    '<body>' +
+    '<h1>Truth Lens Graph</h1>' +
+    '<ul>' + list + '</ul>' +
+    '</body>' +
+    '</html>';
+}
+EOF
+
+  cat > "$SERVER" <<'EOF'
+import http from 'node:http';
+import {
+  listPosts,
+  getPost,
+  listAnalysis,
+  getAnalysis,
+  getIngestState,
+  listRecentPosts,
+  listNewPostsSinceLastRun
+} from '../../../packages/storage/src/storage.js';
+import { detectNarratives } from '../../../packages/narratives/src/index.js';
+import { detectClusters } from '../../../packages/cluster/src/index.js';
+import { buildBaselines, getBaselineForSubreddit, compareClusterToBaselines } from '../../../packages/baseline/src/index.js';
+import { buildSpread, getSpreadById, getTimelineById } from '../../../packages/spread/src/index.js';
+import { buildClusterFinding, buildNarrativeFinding, buildAllFindings } from '../../../packages/findings/src/index.js';
+import { renderDashboard, renderClusterDetail, renderNarrativeDetail } from '../../../packages/dashboard/src/index.js';
+import { buildFullGraph, renderFullGraphPage } from '../../../packages/graphfull/src/index.js';
+
+const PORT = Number(process.env.API_PORT ?? 3001);
+
+function json(res, status, data) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data, null, 2));
+}
+
+function html(res, status, markup) {
+  res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(markup);
+}
+
+function notFound(res) {
+  return json(res, 404, { error: 'not_found' });
+}
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+function summarize(analysisItems) {
+  const total = analysisItems.length;
+  const avgSynthetic = total ? analysisItems.reduce((a, x) => a + (x.score.synthetic_language_likelihood || 0), 0) / total : 0;
+  const avgSteering = total ? analysisItems.reduce((a, x) => a + (x.score.narrative_steering_likelihood || 0), 0) / total : 0;
+  const avgCoordination = total ? analysisItems.reduce((a, x) => a + (x.score.coordination_likelihood || 0), 0) / total : 0;
+
+  const topFlagged = [...analysisItems]
+    .sort((a, b) => (b.score.narrative_steering_likelihood + b.score.coordination_likelihood) - (a.score.narrative_steering_likelihood + a.score.coordination_likelihood))
+    .slice(0, 5)
+    .map((x) => ({
+      id: x.id,
+      subreddit: x.post.subreddit,
+      author: x.post.author,
+      score: x.score,
+      reasons: x.score.reasons
+    }));
+
+  return {
+    total_posts: total,
+    average_synthetic_language_likelihood: round2(avgSynthetic),
+    average_narrative_steering_likelihood: round2(avgSteering),
+    average_coordination_likelihood: round2(avgCoordination),
+    top_flagged: topFlagged
+  };
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url || '/', 'http://localhost');
+  const parts = url.pathname.split('/').filter(Boolean);
+
+  if (url.pathname === '/health') {
+    return json(res, 200, {
+      status: 'ok',
+      service: 'truth-lens-api',
+      time_utc: new Date().toISOString(),
+      version: 'v1'
+    });
+  }
+
+  if (url.pathname === '/posts') return json(res, 200, listPosts());
+
+  if (parts[0] === 'posts' && parts[1]) {
+    const post = getPost(parts[1]);
+    return post ? json(res, 200, post) : notFound(res);
+  }
+
+  if (url.pathname === '/analysis') return json(res, 200, listAnalysis());
+
+  if (parts[0] === 'analysis' && parts[1]) {
+    const analysis = getAnalysis(parts[1]);
+    return analysis ? json(res, 200, analysis) : notFound(res);
+  }
+
+  if (url.pathname === '/summary') return json(res, 200, summarize(listAnalysis()));
+
+  if (url.pathname === '/activity') {
+    return json(res, 200, {
+      ingest_state: getIngestState(),
+      recent_posts: listRecentPosts(10),
+      new_since_last_run: listNewPostsSinceLastRun(10)
+    });
+  }
+
+  if (url.pathname === '/baselines') return json(res, 200, buildBaselines(listPosts(), listAnalysis()));
+
+  if (parts[0] === 'baselines' && parts[1]) {
+    const item = getBaselineForSubreddit(parts[1], listPosts(), listAnalysis());
+    return item ? json(res, 200, item) : notFound(res);
+  }
+
+  if (url.pathname === '/narratives') return json(res, 200, detectNarratives(listPosts()));
+
+  if (parts[0] === 'narratives' && parts[1]) {
+    const item = detectNarratives(listPosts()).find((x) => x.id === parts[1]);
+    return item ? json(res, 200, item) : notFound(res);
+  }
+
+  if (url.pathname === '/clusters') {
+    const posts = listPosts();
+    const analyses = listAnalysis();
+    const baselines = buildBaselines(posts, analyses);
+    const clusters = detectClusters(posts, analyses).map((cluster) => ({
+      ...cluster,
+      baseline: compareClusterToBaselines(cluster, baselines)
+    }));
+    return json(res, 200, clusters);
+  }
+
+  if (parts[0] === 'clusters' && parts[1]) {
+    const posts = listPosts();
+    const analyses = listAnalysis();
+    const baselines = buildBaselines(posts, analyses);
+    const item = detectClusters(posts, analyses)
+      .map((cluster) => ({ ...cluster, baseline: compareClusterToBaselines(cluster, baselines) }))
+      .find((x) => x.id === parts[1]);
+    return item ? json(res, 200, item) : notFound(res);
+  }
+
+  if (url.pathname === '/spread') return json(res, 200, buildSpread(listPosts()));
+
+  if (parts[0] === 'spread' && parts[1]) {
+    const item = getSpreadById(parts[1], listPosts());
+    return item ? json(res, 200, item) : notFound(res);
+  }
+
+  if (parts[0] === 'timeline' && parts[1]) {
+    const item = getTimelineById(parts[1], listPosts());
+    return item ? json(res, 200, item) : notFound(res);
+  }
+
+  if (url.pathname === '/findings') {
+    const posts = listPosts();
+    const analyses = listAnalysis();
+    const baselines = buildBaselines(posts, analyses);
+    const clusters = detectClusters(posts, analyses).map((cluster) => ({
+      ...cluster,
+      baseline: compareClusterToBaselines(cluster, baselines)
+    }));
+    const spread = buildSpread(posts);
+    return json(res, 200, buildAllFindings(clusters, spread));
+  }
+
+  if (url.pathname === '/findings/clusters') {
+    const posts = listPosts();
+    const analyses = listAnalysis();
+    const baselines = buildBaselines(posts, analyses);
+    const clusters = detectClusters(posts, analyses).map((cluster) => ({
+      ...cluster,
+      baseline: compareClusterToBaselines(cluster, baselines)
+    }));
+    return json(res, 200, clusters.map(buildClusterFinding));
+  }
+
+  if (url.pathname === '/findings/narratives') {
+    return json(res, 200, buildSpread(listPosts()).map(buildNarrativeFinding));
+  }
+
+  if (parts[0] === 'findings' && parts[1] === 'cluster' && parts[2]) {
+    const posts = listPosts();
+    const analyses = listAnalysis();
+    const baselines = buildBaselines(posts, analyses);
+    const item = detectClusters(posts, analyses)
+      .map((cluster) => ({ ...cluster, baseline: compareClusterToBaselines(cluster, baselines) }))
+      .find((x) => x.id === parts[2]);
+    return item ? json(res, 200, buildClusterFinding(item)) : notFound(res);
+  }
+
+  if (parts[0] === 'findings' && parts[1] === 'narrative' && parts[2]) {
+    const item = getSpreadById(parts[2], listPosts());
+    return item ? json(res, 200, buildNarrativeFinding(item)) : notFound(res);
+  }
+
+  if (url.pathname === '/graph/full') {
+    return json(res, 200, await buildFullGraph(listPosts(), listAnalysis()));
+  }
+
+  if (url.pathname === '/dashboard/graph-full') {
+    return html(res, 200, renderFullGraphPage(await buildFullGraph(listPosts(), listAnalysis())));
+  }
+
+  if (url.pathname === '/dashboard') {
+    const posts = listPosts();
+    const analyses = listAnalysis();
+    const baselines = buildBaselines(posts, analyses);
+    const clusters = detectClusters(posts, analyses).map((cluster) => ({
+      ...cluster,
+      baseline: compareClusterToBaselines(cluster, baselines)
+    }));
+    const spread = buildSpread(posts);
+    const findings = buildAllFindings(clusters, spread);
+    const summaryData = summarize(analyses);
+    return html(res, 200, renderDashboard({
+      summary: summaryData,
+      baselines,
+      clusters,
+      spread,
+      cluster_findings: findings.cluster_findings,
+      narrative_findings: findings.narrative_findings,
+      recent_posts: listRecentPosts(10),
+      new_since_last_run: listNewPostsSinceLastRun(10),
+      ingest_state: getIngestState()
+    }, {
+      sort: url.searchParams.get('sort') || 'rank',
+      subreddit: url.searchParams.get('subreddit') || '',
+      q: url.searchParams.get('q') || ''
+    }));
+  }
+
+  if (parts[0] === 'dashboard' && parts[1] === 'cluster' && parts[2]) {
+    const posts = listPosts();
+    const analyses = listAnalysis();
+    const baselines = buildBaselines(posts, analyses);
+    const cluster = detectClusters(posts, analyses)
+      .map((x) => ({ ...x, baseline: compareClusterToBaselines(x, baselines) }))
+      .find((x) => x.id === parts[2]);
+    if (!cluster) return notFound(res);
+    const finding = buildClusterFinding(cluster);
+    const relatedNarratives = detectNarratives(posts).filter((n) => n.id === cluster.narrative_id);
+    return html(res, 200, renderClusterDetail({ cluster, finding, relatedNarratives }));
+  }
+
+  if (parts[0] === 'dashboard' && parts[1] === 'narrative' && parts[2]) {
+    const spread = getSpreadById(parts[2], listPosts());
+    if (!spread) return notFound(res);
+    const finding = buildNarrativeFinding(spread);
+    const relatedClusters = detectClusters(listPosts(), listAnalysis()).filter((c) => c.narrative_id === spread.id);
+    return html(res, 200, renderNarrativeDetail({ spread, finding, relatedClusters }));
+  }
+
+  return json(res, 200, {
+    message: 'truth-lens api',
+    routes: [
+      '/health',
+      '/posts',
+      '/posts/:id',
+      '/analysis',
+      '/analysis/:id',
+      '/summary',
+      '/activity',
+      '/baselines',
+      '/baselines/:subreddit',
+      '/narratives',
+      '/narratives/:id',
+      '/clusters',
+      '/clusters/:id',
+      '/spread',
+      '/spread/:id',
+      '/timeline/:id',
+      '/findings',
+      '/findings/clusters',
+      '/findings/cluster/:id',
+      '/findings/narratives',
+      '/findings/narrative/:id',
+      '/graph/full',
+      '/dashboard',
+      '/dashboard/graph-full',
+      '/dashboard/cluster/:id',
+      '/dashboard/narrative/:id'
+    ]
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`Truth Lens API running on port ${PORT}`);
+});
+EOF
+
+  echo "[rebuild] core files restored"
+}
+
+echo
+echo "=== Truth Lens Heal ==="
+echo
+
+if [ -n "$REBUILD_CORE" ]; then
+  rebuild_core
+  echo
+  echo "[doctor] post-rebuild scan"
+  $DOCTOR
+  echo
+  echo "[done] tl-heal --rebuild-core completed"
+  exit 0
+fi
+
+backup_file "$SERVER"
+backup_file "$DASH"
+
+SIGNATURES_FILE="$ROOT/packages/signatures/src/index.js"
+TRACING_FILE="$ROOT/packages/tracing/src/index.js"
+FINGERPRINTS_FILE="$ROOT/packages/fingerprints/src/index.js"
+OUTBREAK_FILE="$ROOT/packages/outbreak/src/index.js"
+NEWS_FILE="$ROOT/packages/news/src/index.js"
+GRAPH_FILE="$ROOT/packages/graphfull/src/index.js"
+
+if ! have_file "$SIGNATURES_FILE"; then
+  remove_module_from_server "signatures"
+  remove_dashboard_card_refs "signatures" "signaturesHtml" "SIGNATURE CLUSTERS"
+fi
+
+if ! have_file "$TRACING_FILE"; then
+  remove_module_from_server "traces"
+  remove_dashboard_card_refs "traces" "tracesHtml" "INFLUENCE PATHS"
+fi
+
+if ! have_file "$FINGERPRINTS_FILE"; then
+  remove_module_from_server "fingerprints"
+  remove_dashboard_card_refs "fingerprints" "fingerprintsHtml" "FINGERPRINT ENGINE"
+fi
+
+if ! have_file "$OUTBREAK_FILE"; then
+  remove_module_from_server "outbreaks"
+  remove_dashboard_card_refs "outbreaks" "outbreaksHtml" "OUTBREAKS"
+fi
+
+if ! have_file "$NEWS_FILE"; then
+  remove_module_from_server "alerts"
+  remove_dashboard_card_refs "alerts" "newsHtml" "NEWS"
+fi
+
+if have_file "$GRAPH_FILE"; then
+  if ! have_file "$SIGNATURES_FILE" || ! have_file "$TRACING_FILE" || ! have_file "$FINGERPRINTS_FILE"; then
+    echo "[heal] rewriting graph module to safe minimal mode"
+    backup_file "$GRAPH_FILE"
+
+    cat > "$GRAPH_FILE" <<'EOF'
+import { detectNarratives } from '../../narratives/src/index.js';
+
+export async function buildFullGraph(posts = [], analyses = []) {
+  const narratives = detectNarratives(posts);
+  const nodes = [];
+  const edges = [];
+
+  for (const n of narratives) {
+    nodes.push({
+      id: n.id,
+      type: 'narrative',
+      label: n.label
+    });
+  }
+
+  return { nodes, edges };
+}
+
+export function renderFullGraphPage(graph) {
+  const nodes = graph.nodes || [];
+  let list = '';
+
+  for (const n of nodes) {
+    list += '<li><b>' + n.type + '</b> — ' + n.label + '</li>';
+  }
+
+  return '<!doctype html>' +
+    '<html>' +
+    '<head>' +
+    "<meta charset=\"utf-8\">" +
+    '<title>Truth Lens Graph</title>' +
+    '<style>' +
+    'body{font-family:system-ui;background:#0b1020;color:#e8ecf1;padding:20px}' +
+    '</style>' +
+    '</head>' +
+    '<body>' +
+    '<h1>Truth Lens Graph</h1>' +
+    '<ul>' + list + '</ul>' +
+    '</body>' +
+    '</html>';
+}
+EOF
+  fi
+fi
+
+echo
+echo "[doctor] post-heal scan"
+$DOCTOR
+echo
+echo "[done] tl-heal completed"

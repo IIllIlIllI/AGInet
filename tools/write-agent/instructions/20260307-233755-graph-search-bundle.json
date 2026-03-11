@@ -1,0 +1,148 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "packages/graphview/src"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/graphview/src/index.js",
+      "backup": false,
+      "content": "export function buildGraph(posts, narratives, clusters, spread) {\n  const nodes = [];\n  const edges = [];\n\n  for (const n of narratives || []) {\n    nodes.push({ id: n.id, type: 'narrative', label: n.label, size: n.count || n.post_ids?.length || 0 });\n  }\n\n  for (const c of clusters || []) {\n    nodes.push({ id: c.id, type: 'cluster', label: c.label, size: c.size || 0, suspicion_rank: c.suspicion_rank || 0 });\n    if (c.narrative_id) {\n      edges.push({ source: c.id, target: c.narrative_id, type: 'cluster_to_narrative' });\n    }\n  }\n\n  for (const s of spread || []) {\n    if (!nodes.find((x) => x.id === s.id)) {\n      nodes.push({ id: s.id, type: 'spread', label: s.label, size: s.post_ids?.length || 0 });\n    }\n  }\n\n  const postMap = new Map((posts || []).map((p) => [p.id, p]));\n\n  for (const n of narratives || []) {\n    for (const postId of n.post_ids || []) {\n      const p = postMap.get(postId);\n      if (!p) continue;\n      const postNodeId = `post-${p.id}`;\n      if (!nodes.find((x) => x.id === postNodeId)) {\n        nodes.push({ id: postNodeId, type: 'post', label: p.title || p.id, subreddit: p.subreddit, author: p.author });\n      }\n      edges.push({ source: n.id, target: postNodeId, type: 'narrative_to_post' });\n    }\n  }\n\n  return { nodes, edges };\n}\n\nexport function searchAll(query, posts, narratives, clusters, spread) {\n  const q = String(query || '').trim().toLowerCase();\n  if (!q) return { posts: [], narratives: [], clusters: [], spread: [] };\n\n  return {\n    posts: (posts || []).filter((p) => `${p.title || ''} ${p.body || ''} ${p.subreddit || ''} ${p.author || ''}`.toLowerCase().includes(q)).slice(0, 20),\n    narratives: (narratives || []).filter((n) => `${n.label || ''} ${(n.keywords || []).join(' ')}`.toLowerCase().includes(q)).slice(0, 20),\n    clusters: (clusters || []).filter((c) => `${c.label || ''} ${(c.keywords || []).join(' ')} ${(c.subreddits || []).join(' ')}`.toLowerCase().includes(q)).slice(0, 20),\n    spread: (spread || []).filter((s) => `${s.label || ''} ${(s.keywords || []).join(' ')} ${(s.subreddits || []).join(' ')}`.toLowerCase().includes(q)).slice(0, 20)\n  };\n}\n"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "const controlsHtml = `([\\s\\S]*?)</form>`",
+      "flags": "",
+      "replace": "const controlsHtml = `\n    <form method=\"GET\" action=\"/dashboard\" class=\"controls\">\n      <label>Sort\n        <select name=\"sort\">\n          <option value=\"rank\" ${sort === 'rank' ? 'selected' : ''}>Suspicion Rank</option>\n          <option value=\"size\" ${sort === 'size' ? 'selected' : ''}>Cluster Size</option>\n        </select>\n      </label>\n      <label>Subreddit\n        <input type=\"text\" name=\"subreddit\" value=\"${esc(subreddit)}\" placeholder=\"technology\">\n      </label>\n      <label>Search\n        <input type=\"text\" name=\"q\" value=\"${esc(opts.q || '')}\" placeholder=\"trust\">\n      </label>\n      <button type=\"submit\">Apply</button>\n      <a class=\"button-link\" href=\"/dashboard\">Reset</a>\n    </form>`"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "export function renderDashboard\\(data, opts = \\{\\}\\) \\{",
+      "flags": "",
+      "replace": "export function renderDashboard(data, opts = {}) {"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "const subreddit = opts.subreddit \\|\\| '';",
+      "flags": "",
+      "replace": "const subreddit = opts.subreddit || '';\n  const q = opts.q || '';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "return `<!doctype html>",
+      "flags": "",
+      "replace": "const searchHtml = q\n    ? card('Search Query', `<p>Current search: <strong>${esc(q)}</strong></p><p class=\"muted\">Use the dashboard controls or <a href=\"/search?q=${encodeURIComponent(q)}\">/search</a>.</p>`)\n    : '';\n\n  return `<!doctype html>"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "\\$\\{card\\('Controls', controlsHtml\\)\\}",
+      "flags": "",
+      "replace": "${card('Controls', controlsHtml)}\n  ${searchHtml}"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "export function renderClusterDetail\\(data\\) \\{",
+      "flags": "",
+      "replace": "export function renderClusterDetail(data) {"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "return `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Cluster Detail</title><style>body\\{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#0b1020;color:#e8ecf1\\}.card\\{background:#121a2b;border:1px solid #25314a;border-radius:14px;padding:14px;margin-bottom:14px\\}a\\{color:#8ec5ff\\}.muted\\{color:#9aa4b2\\}ul\\{padding-left:18px\\}</style></head><body><p><a href=\"/dashboard\">← Back to dashboard</a></p><div class=\"card\"><h1>\\$\\{esc\\(f.label \\|\\| c.label \\|\\| c.id\\)\\}</h1><p>\\$\\{esc\\(f.summary \\|\\| ''\\)\\}</p><p class=\"muted\">rank=\\$\\{esc\\(c.suspicion_rank\\)\\} size=\\$\\{esc\\(c.size\\)\\}</p></div><div class=\"card\"><h2>Findings</h2><ul>\\$\\{\\(f.findings \\|\\| \\[\\]\\)\\.map\\(\\(x\\) => `<li>\\$\\{esc\\(x\\)\\}</li>`\\)\\.join\\(''\\)\\}</ul></div><div class=\"card\"><h2>Baseline Context</h2><p>\\$\\{esc\\(baseline.baseline_context \\|\\| 'No baseline context'\\)\\}</p><ul><li>steering delta: \\$\\{esc\\(baseline.steering_delta \\?\\? 0\\)\\}</li><li>coordination delta: \\$\\{esc\\(baseline.coordination_delta \\?\\? 0\\)\\}</li><li>synthetic delta: \\$\\{esc\\(baseline.synthetic_delta \\?\\? 0\\)\\}</li></ul></div><div class=\"card\"><h2>Members</h2><p>subreddits: \\$\\{esc\\(\\(c.subreddits \\|\\| \\[\\]\\)\\.join\\(', '\\)\\)\\}</p><p>authors: \\$\\{esc\\(\\(c.authors \\|\\| \\[\\]\\)\\.join\\(', '\\)\\)\\}</p><p>post_ids: \\$\\{esc\\(\\(c.post_ids \\|\\| \\[\\]\\)\\.join\\(', '\\)\\)\\}</p></div></body></html>`;",
+      "flags": "",
+      "replace": "  const related = (data.relatedNarratives || []).map((x) => `<li><a href=\"/dashboard/narrative/${esc(x.id)}\">${esc(x.label || x.id)}</a></li>`).join('') || '<li class=\"muted\">No related narratives.</li>';\n  return `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Cluster Detail</title><style>body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#0b1020;color:#e8ecf1}.card{background:#121a2b;border:1px solid #25314a;border-radius:14px;padding:14px;margin-bottom:14px}a{color:#8ec5ff}.muted{color:#9aa4b2}ul{padding-left:18px}</style></head><body><p><a href=\"/dashboard\">← Back to dashboard</a></p><div class=\"card\"><h1>${esc(f.label || c.label || c.id)}</h1><p>${esc(f.summary || '')}</p><p class=\"muted\">rank=${esc(c.suspicion_rank)} size=${esc(c.size)}</p></div><div class=\"card\"><h2>Findings</h2><ul>${(f.findings || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div><div class=\"card\"><h2>Baseline Context</h2><p>${esc(baseline.baseline_context || 'No baseline context')}</p><ul><li>steering delta: ${esc(baseline.steering_delta ?? 0)}</li><li>coordination delta: ${esc(baseline.coordination_delta ?? 0)}</li><li>synthetic delta: ${esc(baseline.synthetic_delta ?? 0)}</li></ul></div><div class=\"card\"><h2>Members</h2><p>subreddits: ${esc((c.subreddits || []).join(', '))}</p><p>authors: ${esc((c.authors || []).join(', '))}</p><p>post_ids: ${esc((c.post_ids || []).join(', '))}</p></div><div class=\"card\"><h2>Related Narratives</h2><ul>${related}</ul></div></body></html>`;"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "export function renderNarrativeDetail\\(data\\) \\{",
+      "flags": "",
+      "replace": "export function renderNarrativeDetail(data) {"
+    },
+    {
+      "action": "replace_regex",
+      "path": "packages/dashboard/src/index.js",
+      "backup": true,
+      "pattern": "return `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Narrative Detail</title><style>body\\{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#0b1020;color:#e8ecf1\\}.card\\{background:#121a2b;border:1px solid #25314a;border-radius:14px;padding:14px;margin-bottom:14px\\}a\\{color:#8ec5ff\\}.muted\\{color:#9aa4b2\\}ul\\{padding-left:18px\\}.timeline\\{display:flex;gap:6px;flex-wrap:wrap\\}.bin\\{background:#0f1727;border:1px solid #23304a;border-radius:8px;padding:6px;min-width:88px\\}</style></head><body><p><a href=\"/dashboard\">← Back to dashboard</a></p><div class=\"card\"><h1>\\$\\{esc\\(f.label \\|\\| n.label \\|\\| n.id\\)\\}</h1><p>\\$\\{esc\\(f.summary \\|\\| ''\\)\\}</p><p class=\"muted\">first_seen=\\$\\{esc\\(n.first_seen\\)\\} last_seen=\\$\\{esc\\(n.last_seen\\)\\} span_minutes=\\$\\{esc\\(n.span_minutes\\)\\}</p></div><div class=\"card\"><h2>Findings</h2><ul>\\$\\{\\(f.findings \\|\\| \\[\\]\\)\\.map\\(\\(x\\) => `<li>\\$\\{esc\\(x\\)\\}</li>`\\)\\.join\\(''\\)\\}</ul></div><div class=\"card\"><h2>Spread</h2><p>subreddits: \\$\\{esc\\(\\(n.subreddits \\|\\| \\[\\]\\)\\.join\\(', '\\)\\)\\}</p><p>authors: \\$\\{esc\\(\\(n.authors \\|\\| \\[\\]\\)\\.join\\(', '\\)\\)\\}</p><p>compressed window: \\$\\{esc\\(n.time_compression_flag\\)\\}</p></div><div class=\"card\"><h2>Timeline</h2><div class=\"timeline\">\\$\\{\\(n.timeline \\|\\| \\[\\]\\)\\.map\\(\\(b\\) => `<span class=\"bin\"><strong>\\$\\{esc\\(b.count\\)\\}</strong><br><small>\\$\\{esc\\(b.bucket_start\\)\\}</small></span>`\\)\\.join\\(''\\)\\}</div></div></body></html>`;",
+      "flags": "",
+      "replace": "  const related = (data.relatedClusters || []).map((x) => `<li><a href=\"/dashboard/cluster/${esc(x.id)}\">${esc(x.label || x.id)}</a></li>`).join('') || '<li class=\"muted\">No related clusters.</li>';\n  return `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Narrative Detail</title><style>body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#0b1020;color:#e8ecf1}.card{background:#121a2b;border:1px solid #25314a;border-radius:14px;padding:14px;margin-bottom:14px}a{color:#8ec5ff}.muted{color:#9aa4b2}ul{padding-left:18px}.timeline{display:flex;gap:6px;flex-wrap:wrap}.bin{background:#0f1727;border:1px solid #23304a;border-radius:8px;padding:6px;min-width:88px}</style></head><body><p><a href=\"/dashboard\">← Back to dashboard</a></p><div class=\"card\"><h1>${esc(f.label || n.label || n.id)}</h1><p>${esc(f.summary || '')}</p><p class=\"muted\">first_seen=${esc(n.first_seen)} last_seen=${esc(n.last_seen)} span_minutes=${esc(n.span_minutes)}</p></div><div class=\"card\"><h2>Findings</h2><ul>${(f.findings || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div><div class=\"card\"><h2>Spread</h2><p>subreddits: ${esc((n.subreddits || []).join(', '))}</p><p>authors: ${esc((n.authors || []).join(', '))}</p><p>compressed window: ${esc(n.time_compression_flag)}</p></div><div class=\"card\"><h2>Timeline</h2><div class=\"timeline\">${(n.timeline || []).map((b) => `<span class=\"bin\"><strong>${esc(b.count)}</strong><br><small>${esc(b.bucket_start)}</small></span>`).join('')}</div></div><div class=\"card\"><h2>Related Clusters</h2><ul>${related}</ul></div></body></html>`;"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "import \\{ renderDashboard, renderClusterDetail, renderNarrativeDetail \\} from '\\.\\./\\.\\./\\.\\./packages/dashboard/src/index\\.js';",
+      "flags": "",
+      "replace": "import { renderDashboard, renderClusterDetail, renderNarrativeDetail } from '../../../packages/dashboard/src/index.js';\nimport { buildGraph, searchAll } from '../../../packages/graphview/src/index.js';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/spread'\\) \\{\\n    return json\\(res, 200, buildSpread\\(listPosts\\(\\)\\)\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (url.pathname === '/spread') {\n    return json(res, 200, buildSpread(listPosts()));\n  }\n\n  if (url.pathname === '/graph') {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const narratives = detectNarratives(posts);\n    const clusters = detectClusters(posts, analyses);\n    const spread = buildSpread(posts);\n    return json(res, 200, buildGraph(posts, narratives, clusters, spread));\n  }\n\n  if (url.pathname === '/search') {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const narratives = detectNarratives(posts);\n    const clusters = detectClusters(posts, analyses);\n    const spread = buildSpread(posts);\n    const q = url.searchParams.get('q') || '';\n    return json(res, 200, { query: q, results: searchAll(q, posts, narratives, clusters, spread) });\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "const sort = url.searchParams.get\\('sort'\\) \\|\\| 'rank';\\n    const subreddit = url.searchParams.get\\('subreddit'\\) \\|\\| '';",
+      "flags": "",
+      "replace": "const sort = url.searchParams.get('sort') || 'rank';\n    const subreddit = url.searchParams.get('subreddit') || '';\n    const q = url.searchParams.get('q') || '';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "return html\\(res, 200, renderDashboard\\(\\{[\\s\\S]*?\\}, \\{ sort, subreddit \\}\\)\\);",
+      "flags": "",
+      "replace": "return html(res, 200, renderDashboard({\n      summary: summaryData,\n      baselines,\n      clusters,\n      spread,\n      cluster_findings: findings.cluster_findings,\n      narrative_findings: findings.narrative_findings\n    }, { sort, subreddit, q }));"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "const finding = buildClusterFinding\\(cluster\\);\\n    return html\\(res, 200, renderClusterDetail\\(\\{ cluster, finding \\}\\)\\);",
+      "flags": "",
+      "replace": "const finding = buildClusterFinding(cluster);\n    const relatedNarratives = detectNarratives(posts).filter((n) => n.id === cluster.narrative_id);\n    return html(res, 200, renderClusterDetail({ cluster, finding, relatedNarratives }));"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "const finding = buildNarrativeFinding\\(spread\\);\\n    return html\\(res, 200, renderNarrativeDetail\\(\\{ spread, finding \\}\\)\\);",
+      "flags": "",
+      "replace": "const finding = buildNarrativeFinding(spread);\n    const relatedClusters = detectClusters(listPosts(), listAnalysis()).filter((c) => c.narrative_id === spread.id);\n    return html(res, 200, renderNarrativeDetail({ spread, finding, relatedClusters }));"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "routes: \\['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id', '/spread', '/spread/:id', '/timeline/:id', '/findings', '/findings/clusters', '/findings/cluster/:id', '/findings/narratives', '/findings/narrative/:id', '/dashboard', '/dashboard/cluster/:id', '/dashboard/narrative/:id'\\]",
+      "flags": "",
+      "replace": "routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id', '/spread', '/spread/:id', '/timeline/:id', '/findings', '/findings/clusters', '/findings/cluster/:id', '/findings/narratives', '/findings/narrative/:id', '/dashboard', '/dashboard/cluster/:id', '/dashboard/narrative/:id', '/graph', '/search']"
+    },
+    {
+      "action": "append_file",
+      "path": "README.md",
+      "backup": true,
+      "content": "\n## graph and search routes\n\n- `/graph` - JSON node/edge graph for posts, narratives, and clusters\n- `/search?q=trust` - search across posts, narratives, clusters, and spread records\n- dashboard now includes a search box and related links on detail pages\n"
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+DOCTOR_CMD=(node "$ROOT/tools/read-agent/read-repo.mjs" doctor)
+FIXER_CMD=(node "$ROOT/tools/read-agent/fix-repo.mjs")
+
+FORCE_MODE=""
+FORCE_TARGET=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --force-fix)
+      FORCE_MODE="1"
+      ;;
+    --force-fix=*)
+      FORCE_MODE="1"
+      FORCE_TARGET="${arg#--force-fix=}"
+      ;;
+  esac
+done
+
+pick_first_suggestion() {
+  printf '%s\n' "$1" \
+    | awk '/=== SUGGESTED FIX COMMANDS ===/{flag=1;next}/^===/{flag=0}flag' \
+    | sed '/^\s*$/d' \
+    | head -n 1 \
+    | sed 's/^tl-fix-//' \
+    | sed 's/^tl-fix$//'
+}
+
+list_suggestions() {
+  printf '%s\n' "$1" \
+    | awk '/=== SUGGESTED FIX COMMANDS ===/{flag=1;next}/^===/{flag=0}flag' \
+    | sed '/^\s*$/d'
+}
+
+is_valid_fix() {
+  case "$1" in
+    api|dashboard|storage|packages|critical)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+find_port_pid() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -ti tcp:3001 2>/dev/null | head -n 1
+    return 0
+  fi
+
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnp 2>/dev/null | awk '/:3001 / {print $NF}' | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | head -n 1
+    return 0
+  fi
+
+  return 0
+}
+
+check_contains() {
+  local body="$1"
+  local needle="$2"
+  printf '%s' "$body" | grep -Fq "$needle"
+}
+
+echo
+echo "=== Truth Lens Safe Cycle ==="
+echo
+
+cd "$ROOT"
+
+OLD_PID="$(find_port_pid || true)"
+if [ -n "$OLD_PID" ]; then
+  echo "[precheck] port 3001 is already in use by PID $OLD_PID"
+
+  if [ -n "$FORCE_MODE" ]; then
+    echo "[precheck] force mode: killing PID $OLD_PID"
+    kill "$OLD_PID" 2>/dev/null || true
+    sleep 1
+  else
+    printf "Stop existing API process now? [y/N]: "
+    read -r STOP_OLD
+    if [ "$STOP_OLD" = "y" ] || [ "$STOP_OLD" = "Y" ]; then
+      kill "$OLD_PID" 2>/dev/null || true
+      sleep 1
+      echo "[precheck] stopped PID $OLD_PID"
+    else
+      echo "[precheck] leaving existing process running"
+    fi
+  fi
+fi
+
+echo "[1/5] Running doctor..."
+DOCTOR_OUTPUT="$("${DOCTOR_CMD[@]}")"
+echo "$DOCTOR_OUTPUT"
+
+echo
+SUGGESTIONS="$(list_suggestions "$DOCTOR_OUTPUT")"
+
+APPLY_NAME=""
+
+if [ -n "$FORCE_MODE" ]; then
+  echo "[2/5] Force-fix mode enabled."
+
+  if [ -n "$FORCE_TARGET" ]; then
+    if is_valid_fix "$FORCE_TARGET"; then
+      APPLY_NAME="$FORCE_TARGET"
+      echo "[force] requested fix: $APPLY_NAME"
+    else
+      echo "[force] invalid fix target: $FORCE_TARGET"
+      exit 1
+    fi
+  else
+    FIRST="$(pick_first_suggestion "$DOCTOR_OUTPUT")"
+    if [ -n "$FIRST" ] && is_valid_fix "$FIRST"; then
+      APPLY_NAME="$FIRST"
+      echo "[force] first suggested fix: $APPLY_NAME"
+    else
+      echo "[force] no valid suggested fix found"
+    fi
+  fi
+else
+  if [ -n "$SUGGESTIONS" ] && ! printf '%s\n' "$SUGGESTIONS" | grep -q "No fix command suggested"; then
+    echo "[2/5] Suggested fixes detected:"
+    printf '%s\n' "$SUGGESTIONS"
+    echo
+    printf "Apply a fix now? [y/N]: "
+    read -r APPLY_FIX
+
+    if [ "$APPLY_FIX" = "y" ] || [ "$APPLY_FIX" = "Y" ]; then
+      printf "Enter fix command name (api/dashboard/storage/packages/critical): "
+      read -r FIX_NAME
+      if is_valid_fix "$FIX_NAME"; then
+        APPLY_NAME="$FIX_NAME"
+      else
+        echo "[skip] unknown fix name, skipping."
+      fi
+    fi
+  else
+    echo "[2/5] No suggested fix to apply."
+  fi
+fi
+
+if [ -n "$APPLY_NAME" ]; then
+  echo "[fix] applying $APPLY_NAME ..."
+  "${FIXER_CMD[@]}" "$APPLY_NAME"
+fi
+
+echo
+echo "[3/5] Running worker..."
+node apps/worker/src/worker.ts
+
+echo
+echo "[4/5] Starting API in background..."
+API_LOG="$ROOT/api.log"
+nohup node apps/api/src/server.ts > "$API_LOG" 2>&1 &
+API_PID=$!
+sleep 2
+
+echo "API PID: $API_PID"
+echo "API log: $API_LOG"
+
+echo
+echo "[5/5] Smoke tests..."
+echo
+
+HEALTH_BODY="$(curl -s http://127.0.0.1:3001/health || true)"
+ACTIVITY_BODY="$(curl -s http://127.0.0.1:3001/activity || true)"
+DASHBOARD_BODY="$(curl -s http://127.0.0.1:3001/dashboard || true)"
+
+echo "--- /health preview ---"
+printf '%s\n' "$HEALTH_BODY" | head -c 400
+echo
+echo
+
+echo "--- /activity preview ---"
+printf '%s\n' "$ACTIVITY_BODY" | head -c 600
+echo
+echo
+
+echo "--- /dashboard preview ---"
+printf '%s\n' "$DASHBOARD_BODY" | head -c 400
+echo
+echo
+
+FAIL=0
+
+if check_contains "$HEALTH_BODY" '"status"'; then
+  echo "[pass] /health contains status"
+else
+  echo "[fail] /health missing status"
+  FAIL=1
+fi
+
+if check_contains "$ACTIVITY_BODY" 'ingest_state'; then
+  echo "[pass] /activity contains ingest_state"
+else
+  echo "[fail] /activity missing ingest_state"
+  FAIL=1
+fi
+
+if check_contains "$DASHBOARD_BODY" '<!doctype html>'; then
+  echo "[pass] /dashboard contains doctype"
+else
+  echo "[fail] /dashboard missing doctype"
+  FAIL=1
+fi
+
+if check_contains "$DASHBOARD_BODY" 'Truth Lens Dashboard'; then
+  echo "[pass] /dashboard contains title marker"
+else
+  echo "[fail] /dashboard missing title marker"
+  FAIL=1
+fi
+
+echo
+if [ "$FAIL" -eq 0 ]; then
+  echo "[smoke] all checks passed"
+else
+  echo "[smoke] one or more checks failed"
+fi
+
+echo
+echo "Open:"
+echo "  http://127.0.0.1:3001/dashboard"
+echo "  http://127.0.0.1:3001/activity"
+echo
+echo "To stop the background API later:"
+echo "  kill $API_PID"

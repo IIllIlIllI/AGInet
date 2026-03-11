@@ -37,6 +37,20 @@ function writeFile(op) {
   console.log(`[write] ${op.path}`);
 }
 
+function appendFile(op) {
+  const filePath = safeResolve(op.path);
+  ensureDir(path.dirname(filePath));
+
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, "", "utf8");
+  } else if (op.backup !== false) {
+    backupFileIfExists(filePath);
+  }
+
+  fs.appendFileSync(filePath, op.content ?? "", "utf8");
+  console.log(`[append] ${op.path}`);
+}
+
 function mkdirOp(op) {
   const dirPath = safeResolve(op.path);
   ensureDir(dirPath);
@@ -66,6 +80,37 @@ function replaceInFile(op) {
 
   fs.writeFileSync(filePath, updated, "utf8");
   console.log(`[patch] ${op.path}`);
+}
+
+function replaceRegexInFile(op) {
+  const filePath = safeResolve(op.path);
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`File not found: ${op.path}`);
+  }
+
+  if (!op.pattern) {
+    throw new Error(`replace_regex requires "pattern"`);
+  }
+
+  const flags = typeof op.flags === "string" ? op.flags : "g";
+  const regex = new RegExp(op.pattern, flags);
+
+  const original = fs.readFileSync(filePath, "utf8");
+
+  if (!regex.test(original)) {
+    throw new Error(`Regex pattern not found in ${op.path}`);
+  }
+
+  regex.lastIndex = 0;
+  const updated = original.replace(regex, op.replace ?? "");
+
+  if (op.backup !== false) {
+    backupFileIfExists(filePath);
+  }
+
+  fs.writeFileSync(filePath, updated, "utf8");
+  console.log(`[regex] ${op.path}`);
 }
 
 function deleteFile(op) {
@@ -99,8 +144,12 @@ function runOperation(op) {
       return mkdirOp(op);
     case "write_file":
       return writeFile(op);
+    case "append_file":
+      return appendFile(op);
     case "replace_in_file":
       return replaceInFile(op);
+    case "replace_regex":
+      return replaceRegexInFile(op);
     case "delete_file":
       return deleteFile(op);
     default:
@@ -112,7 +161,7 @@ function main() {
   const instructionArg = process.argv[2];
 
   if (!instructionArg) {
-    console.error("Usage: node writer.js <instructions.json>");
+    console.error("Usage: node writer.cjs <instructions.json>");
     process.exit(1);
   }
 

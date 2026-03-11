@@ -1,0 +1,52 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "packages/findings/src"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/findings/src/index.js",
+      "backup": false,
+      "content": "function round2(n) {\n  return Math.round(n * 100) / 100;\n}\n\nfunction band(n) {\n  if (n < 0.2) return 'very low';\n  if (n < 0.4) return 'low';\n  if (n < 0.6) return 'moderate';\n  if (n < 0.8) return 'high';\n  return 'very high';\n}\n\nfunction pushIf(arr, cond, text) {\n  if (cond) arr.push(text);\n}\n\nexport function buildClusterFinding(cluster) {\n  const findings = [];\n  const cautions = [];\n\n  pushIf(findings, cluster.size >= 2, `This cluster contains ${cluster.size} related posts.`);\n  pushIf(findings, (cluster.subreddits || []).length >= 2, `The framing appears across ${cluster.subreddits.length} subreddits.`);\n  pushIf(findings, (cluster.authors || []).length >= 2, `The cluster involves ${cluster.authors.length} distinct authors.`);\n  pushIf(findings, (cluster.average_narrative_steering_likelihood || 0) >= 0.6, `Narrative steering likelihood is ${band(cluster.average_narrative_steering_likelihood)}.`);\n  pushIf(findings, (cluster.average_coordination_likelihood || 0) >= 0.5, `Coordination likelihood is ${band(cluster.average_coordination_likelihood)}.`);\n  pushIf(findings, (cluster.average_synthetic_language_likelihood || 0) >= 0.5, `Synthetic-language likelihood is ${band(cluster.average_synthetic_language_likelihood)}.`);\n\n  if (cluster.baseline) {\n    pushIf(findings, (cluster.baseline.steering_delta || 0) > 0.1, `Steering is above subreddit baseline by ${round2(cluster.baseline.steering_delta)}.`);\n    pushIf(findings, (cluster.baseline.coordination_delta || 0) > 0.1, `Coordination is above subreddit baseline by ${round2(cluster.baseline.coordination_delta)}.`);\n    pushIf(findings, (cluster.baseline.synthetic_delta || 0) > 0.1, `Synthetic-language score is above subreddit baseline by ${round2(cluster.baseline.synthetic_delta)}.`);\n  }\n\n  cautions.push('This does not prove falsehood or operator identity.');\n  cautions.push('Repeated framing can also emerge organically during major events or memes.');\n\n  return {\n    id: cluster.id,\n    entity_type: 'cluster',\n    label: cluster.label,\n    suspicion_rank: cluster.suspicion_rank,\n    summary: buildClusterSummary(cluster),\n    findings,\n    cautions\n  };\n}\n\nexport function buildNarrativeFinding(spreadItem) {\n  const findings = [];\n  const cautions = [];\n\n  pushIf(findings, spreadItem.post_ids.length >= 2, `This narrative appears in ${spreadItem.post_ids.length} posts.`);\n  pushIf(findings, spreadItem.subreddit_count >= 2, `It spread across ${spreadItem.subreddit_count} subreddits.`);\n  pushIf(findings, spreadItem.author_count >= 2, `It was carried by ${spreadItem.author_count} distinct authors.`);\n  pushIf(findings, !!spreadItem.first_seen && !!spreadItem.last_seen, `Observed window: ${spreadItem.first_seen} to ${spreadItem.last_seen}.`);\n  pushIf(findings, spreadItem.span_minutes > 0, `Spread span is ${round2(spreadItem.span_minutes)} minutes.`);\n  pushIf(findings, spreadItem.time_compression_flag, 'This narrative appears in a compressed time window.');\n\n  cautions.push('A compressed spread window is a clue, not proof of coordination.');\n  cautions.push('Shared narratives can spread organically in fast-moving discussions.');\n\n  return {\n    id: spreadItem.id,\n    entity_type: 'narrative',\n    label: spreadItem.label,\n    summary: buildNarrativeSummary(spreadItem),\n    findings,\n    cautions\n  };\n}\n\nfunction buildClusterSummary(cluster) {\n  const parts = [];\n  if (cluster.label) parts.push(`Shared framing: ${cluster.label}.`);\n  if (cluster.size >= 2) parts.push(`${cluster.size} related posts detected.`);\n  if ((cluster.subreddits || []).length >= 2) parts.push(`Spread across ${cluster.subreddits.length} subreddits.`);\n  if ((cluster.average_narrative_steering_likelihood || 0) >= 0.6) parts.push('Steering signal is elevated.');\n  if (cluster.baseline && (cluster.baseline.steering_delta || 0) > 0.1) parts.push('This exceeds local steering baseline.');\n  return parts.join(' ');\n}\n\nfunction buildNarrativeSummary(item) {\n  const parts = [];\n  if (item.label) parts.push(`Narrative: ${item.label}.`);\n  parts.push(`Seen in ${item.post_ids.length} posts.`);\n  if (item.subreddit_count >= 2) parts.push(`Spread across ${item.subreddit_count} subreddits.`);\n  if (item.time_compression_flag) parts.push('Appeared in a compressed time window.');\n  return parts.join(' ');\n}\n\nexport function buildAllFindings(clusters, spread) {\n  return {\n    cluster_findings: clusters.map(buildClusterFinding),\n    narrative_findings: spread.map(buildNarrativeFinding)\n  };\n}\n"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "import \\{ buildSpread, getSpreadById, getTimelineById \\} from '\\.\\./\\.\\./\\.\\./packages/spread/src/index\\.js';",
+      "flags": "",
+      "replace": "import { buildSpread, getSpreadById, getTimelineById } from '../../../packages/spread/src/index.js';\nimport { buildClusterFinding, buildNarrativeFinding, buildAllFindings } from '../../../packages/findings/src/index.js';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/spread'\\) \\{\\n    return json\\(res, 200, buildSpread\\(listPosts\\(\\)\\)\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (url.pathname === '/spread') {\n    return json(res, 200, buildSpread(listPosts()));\n  }\n\n  if (url.pathname === '/findings') {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const baselines = buildBaselines(posts, analyses);\n    const clusters = detectClusters(posts, analyses).map((cluster) => ({\n      ...cluster,\n      baseline: compareClusterToBaselines(cluster, baselines)\n    }));\n    const spread = buildSpread(posts);\n    return json(res, 200, buildAllFindings(clusters, spread));\n  }\n\n  if (url.pathname === '/findings/clusters') {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const baselines = buildBaselines(posts, analyses);\n    const clusters = detectClusters(posts, analyses).map((cluster) => ({\n      ...cluster,\n      baseline: compareClusterToBaselines(cluster, baselines)\n    }));\n    return json(res, 200, clusters.map(buildClusterFinding));\n  }\n\n  if (url.pathname === '/findings/narratives') {\n    return json(res, 200, buildSpread(listPosts()).map(buildNarrativeFinding));\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(parts\\[0\\] === 'timeline' && parts\\[1\\]\\) \\{\\n    const item = getTimelineById\\(parts\\[1\\], listPosts\\(\\)\\);\\n    return item \\? json\\(res, 200, item\\) : notFound\\(res\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (parts[0] === 'timeline' && parts[1]) {\n    const item = getTimelineById(parts[1], listPosts());\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  if (parts[0] === 'findings' && parts[1] === 'cluster' && parts[2]) {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const baselines = buildBaselines(posts, analyses);\n    const item = detectClusters(posts, analyses)\n      .map((cluster) => ({ ...cluster, baseline: compareClusterToBaselines(cluster, baselines) }))\n      .find((x) => x.id === parts[2]);\n    return item ? json(res, 200, buildClusterFinding(item)) : notFound(res);\n  }\n\n  if (parts[0] === 'findings' && parts[1] === 'narrative' && parts[2]) {\n    const item = getSpreadById(parts[2], listPosts());\n    return item ? json(res, 200, buildNarrativeFinding(item)) : notFound(res);\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "routes: \\['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id', '/spread', '/spread/:id', '/timeline/:id'\\]",
+      "flags": "",
+      "replace": "routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id', '/spread', '/spread/:id', '/timeline/:id', '/findings', '/findings/clusters', '/findings/cluster/:id', '/findings/narratives', '/findings/narrative/:id']"
+    },
+    {
+      "action": "append_file",
+      "path": "README.md",
+      "backup": true,
+      "content": "\n## findings routes\n\n- `/findings` - combined analyst-style findings\n- `/findings/clusters` - readable cluster findings\n- `/findings/cluster/:id` - one cluster finding\n- `/findings/narratives` - readable narrative findings\n- `/findings/narrative/:id` - one narrative finding\n"
+    }
+  ]
+}

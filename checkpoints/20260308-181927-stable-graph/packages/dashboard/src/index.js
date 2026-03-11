@@ -1,0 +1,337 @@
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function card(title, body) {
+  return `<section class="card"><h2>${esc(title)}</h2>${body}</section>`;
+}
+
+function list(items) {
+  if (!items || !items.length) return '<p class="muted">No items yet.</p>';
+  return `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+}
+
+function topProTip(clusterFindings, narrativeFindings) {
+  const topCluster = (clusterFindings || [])[0];
+  const topNarrative = (narrativeFindings || [])[0];
+
+  if (topCluster) {
+    return {
+      headline: 'Top cluster signal',
+      body: topCluster.summary || 'A suspicious cluster was detected.',
+      caution: (topCluster.cautions || [])[0] || 'This is contextual guidance, not proof.'
+    };
+  }
+
+  if (topNarrative) {
+    return {
+      headline: 'Top narrative signal',
+      body: topNarrative.summary || 'A repeated narrative was detected.',
+      caution: (topNarrative.cautions || [])[0] || 'This is contextual guidance, not proof.'
+    };
+  }
+
+  return {
+    headline: 'No major signal yet',
+    body: 'The dashboard has not identified a strong cluster or narrative from the current local dataset.',
+    caution: 'More data improves interpretation.'
+  };
+}
+
+function timelineMini(item) {
+  const bins = (item?.timeline || []).slice(0, 6);
+  if (!bins.length) return '<div class="muted">No timeline yet.</div>';
+  return `<div class="timeline">${bins.map((b) => `<span class="bin"><strong>${esc(b.count)}</strong><br><small>${esc(b.bucket_start)}</small></span>`).join('')}</div>`;
+}
+
+function sortClusters(items, sort) {
+  const arr = [...(items || [])];
+  if (sort === 'size') {
+    return arr.sort((a, b) => (b.cluster?.size || 0) - (a.cluster?.size || 0) || (b.cluster?.suspicion_rank || 0) - (a.cluster?.suspicion_rank || 0));
+  }
+  return arr.sort((a, b) => (b.cluster?.suspicion_rank || 0) - (a.cluster?.suspicion_rank || 0) || (b.cluster?.size || 0) - (a.cluster?.size || 0));
+}
+
+function filterBySubreddit(items, subreddit) {
+  if (!subreddit) return items || [];
+  return (items || []).filter((x) => (x.cluster?.subreddits || x.spread?.subreddits || []).includes(subreddit));
+}
+
+export function renderDashboard(data, opts = {}) {
+  const summary = data.summary || {};
+  const sort = opts.sort || 'rank';
+  const subreddit = opts.subreddit || '';
+  const q = opts.q || '';
+
+  const rawClusterFindings = data.cluster_findings || [];
+  const rawNarrativeFindings = data.narrative_findings || [];
+  const spread = data.spread || [];
+
+  const spreadMap = new Map((spread || []).map((x) => [x.id, x]));
+  const clusterMap = new Map((data.clusters || []).map((x) => [x.id, x]));
+
+  const clusterFindings = sortClusters(
+    filterBySubreddit(
+      rawClusterFindings.map((f) => ({
+        ...f,
+        cluster: clusterMap.get(f.id)
+      })),
+      subreddit
+    ),
+    sort
+  ).slice(0, 8);
+
+  const narrativeFindings = filterBySubreddit(
+    rawNarrativeFindings.map((f) => ({
+      ...f,
+      spread: spreadMap.get(f.id)
+    })),
+    subreddit
+  ).slice(0, 8);
+
+  const baselines = subreddit
+    ? (data.baselines || []).filter((b) => b.subreddit === subreddit)
+    : (data.baselines || []).slice(0, 8);
+
+  const tip = topProTip(clusterFindings, narrativeFindings);
+
+  const outbreaksHtml = list(outbreaks.slice(0, 5).map((o) => {
+    return `<strong>${esc(o.label || o.id)}</strong><br><span>state=${esc(o.state)} score=${esc(o.score)}</span><br><span class="muted">${esc((o.reason_codes || []).join(' • '))}</span>`;
+  }));
+
+  const tracesHtml = list(traces.slice(0, 5).map((t) => {
+    return `<strong>${esc(t.label || t.id)}</strong><br><span>seed=${esc((t.seed_subreddits || []).join(', '))}</span><br><span class="muted">amplifiers=${esc((t.amplifier_subreddits || []).join(' • '))}</span>`;
+  }));
+
+  const fingerprintsHtml = list(fingerprints.slice(0, 5).map((f) => {
+    return `<strong>${esc(f.label || f.id)}</strong><br><span>confidence=${esc(f.confidence)} score=${esc(f.score)}</span><br><span class="muted">${esc((f.top_terms || []).join(' • '))}</span>`;
+  }));
+
+  const summaryHtml = `
+    <div class="grid cols-4">
+      <div class="metric"><div class="label">Posts</div><div class="value">${esc(summary.total_posts ?? 0)}</div></div>
+      <div class="metric"><div class="label">Avg Synthetic</div><div class="value">${esc(summary.average_synthetic_language_likelihood ?? 0)}</div></div>
+      <div class="metric"><div class="label">Avg Steering</div><div class="value">${esc(summary.average_narrative_steering_likelihood ?? 0)}</div></div>
+      <div class="metric"><div class="label">Avg Coordination</div><div class="value">${esc(summary.average_coordination_likelihood ?? 0)}</div></div>
+    </div>
+  `;
+
+  const controlsHtml = `
+    <form method="GET" action="/dashboard" class="controls">
+      <label>Sort
+        <select name="sort">
+          <option value="rank" ${sort === 'rank' ? 'selected' : ''}>Suspicion Rank</option>
+          <option value="size" ${sort === 'size' ? 'selected' : ''}>Cluster Size</option>
+        </select>
+      </label>
+      <label>Subreddit
+        <input type="text" name="subreddit" value="${esc(subreddit)}" placeholder="technology">
+      </label>
+      <label>Search
+        <input type="text" name="q" value="${esc(q)}" placeholder="trust">
+      </label>
+      <button type="submit">Apply</button>
+      <a class="button-link" href="/dashboard">Reset</a>
+    </form>
+  `;
+
+  const proTipHtml = `
+    <div class="protip">
+      <div class="protip-label">PRO TIP</div>
+      <div class="protip-headline">${esc(tip.headline)}</div>
+      <div class="protip-body">${esc(tip.body)}</div>
+      <div class="muted">${esc(tip.caution)}</div>
+    </div>
+  `;
+
+  const clustersHtml = list(clusterFindings.map((f) => {
+    const findings = (f.findings || []).slice(0, 3).map((x) => esc(x)).join(' • ');
+    const cluster = f.cluster || {};
+    return `<a href="/dashboard/cluster/${esc(f.id)}"><strong>${esc(f.label || f.id)}</strong></a><br><span>${esc(f.summary || '')}</span><br><span class="muted">rank=${esc(cluster.suspicion_rank ?? '')} size=${esc(cluster.size ?? '')} ${findings}</span>`;
+  }));
+
+  const narrativesHtml = list(narrativeFindings.map((f) => {
+    const findings = (f.findings || []).slice(0, 3).map((x) => esc(x)).join(' • ');
+    const s = f.spread || {};
+    return `<a href="/dashboard/narrative/${esc(f.id)}"><strong>${esc(f.label || f.id)}</strong></a><br><span>${esc(f.summary || '')}</span>${timelineMini(s)}<br><span class="muted">${findings}</span>`;
+  }));
+
+  const baselinesHtml = list(baselines.map((b) => {
+    const kws = (b.common_keywords || []).slice(0, 5).map((k) => esc(k.keyword)).join(', ');
+    return `<strong><a href="/dashboard?subreddit=${encodeURIComponent(b.subreddit)}">r/${esc(b.subreddit)}</a></strong><br><span>posts=${esc(b.post_count)} synthetic=${esc(b.average_synthetic_language_likelihood)} steering=${esc(b.average_narrative_steering_likelihood)} coordination=${esc(b.average_coordination_likelihood)}</span><br><span class="muted">keywords: ${kws}</span>`;
+  }));
+
+  const linksHtml = list([
+    '<a href="/dashboard">/dashboard</a>',
+    '<a href="/health">/health</a>',
+    '<a href="/summary">/summary</a>',
+    '<a href="/findings">/findings</a>',
+    '<a href="/findings/clusters">/findings/clusters</a>',
+    '<a href="/findings/narratives">/findings/narratives</a>',
+    '<a href="/baselines">/baselines</a>',
+    '<a href="/spread">/spread</a>',
+    '<a href="/clusters">/clusters</a>',
+    '<a href="/narratives">/narratives</a>',
+    '<a href="/graph/full">/graph/full</a>',
+    '<a href="/dashboard/graph-full">/dashboard/graph-full</a>'
+  ]);
+
+  const searchHtml = q
+    ? card('Search Query', `<p>Current search: <strong>${esc(q)}</strong></p><p class="muted">Use the dashboard controls.</p>`)
+    : '';
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Truth Lens Dashboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #0b1020; color: #e8ecf1; }
+    h1 { margin-top: 0; font-size: 28px; }
+    h2 { margin: 0 0 10px 0; font-size: 18px; }
+    .muted { color: #9aa4b2; }
+    .grid { display: grid; gap: 12px; }
+    .cols-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .card { background: #121a2b; border: 1px solid #25314a; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .metric { background: #0f1727; border: 1px solid #23304a; border-radius: 12px; padding: 12px; }
+    .label { font-size: 12px; color: #9aa4b2; }
+    .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin-bottom: 10px; }
+    a { color: #8ec5ff; text-decoration: none; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    .controls label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+    input, select, button, .button-link { background: #0f1727; color: #e8ecf1; border: 1px solid #23304a; border-radius: 10px; padding: 8px 10px; }
+    button, .button-link { cursor: pointer; text-decoration: none; display: inline-block; }
+    .protip { background: linear-gradient(180deg, #15213a, #0f1727); border: 1px solid #35538a; border-radius: 14px; padding: 14px; }
+    .protip-label { font-size: 12px; color: #8ec5ff; font-weight: 700; letter-spacing: 0.08em; }
+    .protip-headline { font-size: 20px; font-weight: 700; margin-top: 6px; }
+    .protip-body { margin-top: 8px; margin-bottom: 8px; }
+    .timeline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 8px; }
+    .bin { background: #0f1727; border: 1px solid #23304a; border-radius: 8px; padding: 6px; min-width: 88px; }
+  </style>
+</head>
+<body>
+  <h1>Truth Lens Dashboard</h1>
+  <p class="muted">Local prototype dashboard for findings, baselines, narratives, and clusters.</p>
+  ${card('PRO TIP', proTipHtml)}
+  ${card('Summary', summaryHtml)}
+  ${card('Controls', controlsHtml)}
+  ${searchHtml}
+  ${card('Top Cluster Findings', clustersHtml)}
+  ${card('Top Narrative Findings', narrativesHtml)}
+  ${card('Subreddit Baselines', baselinesHtml)}
+  ${card('Routes', linksHtml)}
+</body>
+</html>`;
+}
+
+export function renderClusterDetail(data) {
+  const c = data.cluster || {};
+  const f = data.finding || {};
+  const baseline = c.baseline || {};
+  const related = (data.relatedNarratives || []).map((x) => `<li><a href="/dashboard/narrative/${esc(x.id)}">${esc(x.label || x.id)}</a></li>`).join('') || '<li class="muted">No related narratives.</li>';
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cluster Detail</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #0b1020; color: #e8ecf1; }
+    .card { background: #121a2b; border: 1px solid #25314a; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    a { color: #8ec5ff; }
+    .muted { color: #9aa4b2; }
+    ul { padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <p><a href="/dashboard">← Back to dashboard</a></p>
+  <div class="card">
+    <h1>${esc(f.label || c.label || c.id)}</h1>
+    <p>${esc(f.summary || '')}</p>
+    <p class="muted">rank=${esc(c.suspicion_rank)} size=${esc(c.size)}</p>
+  </div>
+  <div class="card">
+    <h2>Findings</h2>
+    <ul>${(f.findings || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+  </div>
+  <div class="card">
+    <h2>Baseline Context</h2>
+    <p>${esc(baseline.baseline_context || 'No baseline context')}</p>
+    <ul>
+      <li>steering delta: ${esc(baseline.steering_delta ?? 0)}</li>
+      <li>coordination delta: ${esc(baseline.coordination_delta ?? 0)}</li>
+      <li>synthetic delta: ${esc(baseline.synthetic_delta ?? 0)}</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Members</h2>
+    <p>subreddits: ${esc((c.subreddits || []).join(', '))}</p>
+    <p>authors: ${esc((c.authors || []).join(', '))}</p>
+    <p>post_ids: ${esc((c.post_ids || []).join(', '))}</p>
+  </div>
+  <div class="card">
+    <h2>Related Narratives</h2>
+    <ul>${related}</ul>
+  </div>
+</body>
+</html>`;
+}
+
+export function renderNarrativeDetail(data) {
+  const n = data.spread || {};
+  const f = data.finding || {};
+  const related = (data.relatedClusters || []).map((x) => `<li><a href="/dashboard/cluster/${esc(x.id)}">${esc(x.label || x.id)}</a></li>`).join('') || '<li class="muted">No related clusters.</li>';
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Narrative Detail</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #0b1020; color: #e8ecf1; }
+    .card { background: #121a2b; border: 1px solid #25314a; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    a { color: #8ec5ff; }
+    .muted { color: #9aa4b2; }
+    ul { padding-left: 18px; }
+    .timeline { display: flex; gap: 6px; flex-wrap: wrap; }
+    .bin { background: #0f1727; border: 1px solid #23304a; border-radius: 8px; padding: 6px; min-width: 88px; }
+  </style>
+</head>
+<body>
+  <p><a href="/dashboard">← Back to dashboard</a></p>
+  <div class="card">
+    <h1>${esc(f.label || n.label || n.id)}</h1>
+    <p>${esc(f.summary || '')}</p>
+    <p class="muted">first_seen=${esc(n.first_seen)} last_seen=${esc(n.last_seen)} span_minutes=${esc(n.span_minutes)}</p>
+  </div>
+  <div class="card">
+    <h2>Findings</h2>
+    <ul>${(f.findings || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+  </div>
+  <div class="card">
+    <h2>Spread</h2>
+    <p>subreddits: ${esc((n.subreddits || []).join(', '))}</p>
+    <p>authors: ${esc((n.authors || []).join(', '))}</p>
+    <p>compressed window: ${esc(n.time_compression_flag)}</p>
+  </div>
+  <div class="card">
+    <h2>Timeline</h2>
+    <div class="timeline">${(n.timeline || []).map((b) => `<span class="bin"><strong>${esc(b.count)}</strong><br><small>${esc(b.bucket_start)}</small></span>`).join('')}</div>
+  </div>
+  <div class="card">
+    <h2>Related Clusters</h2>
+    <ul>${related}</ul>
+  </div>
+</body>
+</html>`;
+}

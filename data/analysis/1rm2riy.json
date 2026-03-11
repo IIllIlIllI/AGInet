@@ -1,0 +1,47 @@
+{
+  "id": "1rm2riy",
+  "post": {
+    "id": "1rm2riy",
+    "subreddit": "technology",
+    "author": "PuroPuri4",
+    "title": "Netflix just bought an AI startup founded by Ben Affleck",
+    "body": "",
+    "created_at": "2026-03-06T03:19:52.000Z",
+    "permalink": "https://www.reddit.com/r/technology/comments/1rm2riy/netflix_just_bought_an_ai_startup_founded_by_ben/",
+    "score": 156,
+    "num_comments": 39,
+    "url": "https://www.engadget.com/ai/netflix-just-bought-an-ai-startup-founded-by-ben-affleck-184536640.html?src=rss",
+    "first_seen_at": "2026-03-08T15:52:20.705Z",
+    "last_seen_at": "2026-03-08T15:52:20.705Z",
+    "seen_count": 1,
+    "updated_at": "2026-03-08T15:52:20.705Z"
+  },
+  "features": {
+    "id": "1rm2riy",
+    "subreddit": "technology",
+    "token_count": 10,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 10,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rm2riy",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.18,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.25,
+    "confidence_band": "low",
+    "reasons": []
+  },
+  "analyzed_at": "2026-03-08T15:52:20.706Z",
+  "analysis_count": 1
+}

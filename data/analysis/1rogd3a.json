@@ -1,0 +1,50 @@
+{
+  "id": "1rogd3a",
+  "post": {
+    "id": "1rogd3a",
+    "subreddit": "news",
+    "author": "Discarded_Twix_Bar",
+    "title": "Iran has 'betrayed us' but all sides must de-escalate, says Qatar PM",
+    "body": "",
+    "created_at": "2026-03-08T21:01:11.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1rogd3a/iran_has_betrayed_us_but_all_sides_must/",
+    "score": 296,
+    "num_comments": 134,
+    "url": "https://news.sky.com/story/iran-has-betrayed-us-but-all-sides-must-de-escalate-says-qatar-pm-13517019",
+    "first_seen_at": "2026-03-08T21:21:11.542Z",
+    "last_seen_at": "2026-03-08T23:31:58.125Z",
+    "seen_count": 11,
+    "updated_at": "2026-03-08T23:31:58.125Z"
+  },
+  "features": {
+    "id": "1rogd3a",
+    "subreddit": "news",
+    "token_count": 13,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 1,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 13,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1rogd3a",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.37,
+    "coordination_likelihood": 0.25,
+    "confidence": 0.61,
+    "confidence_band": "high",
+    "reasons": [
+      "long polished sentences",
+      "consensus framing"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:58.126Z",
+  "analysis_count": 11
+}

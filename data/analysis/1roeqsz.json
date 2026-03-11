@@ -1,0 +1,50 @@
+{
+  "id": "1roeqsz",
+  "post": {
+    "id": "1roeqsz",
+    "subreddit": "gaming",
+    "author": "Many_Excitement4023",
+    "title": "Diablo 2 taught me about the nature of humanity, at a very young age.",
+    "body": "I remember I was about 11 years old then. Naive to scammers, and the lot of that. I still remember the very first time I got scammed, this fellow waited for me to die, dropped a ton of  items on my body, then I picked up those items which equipped, and because of that didn't have room for my good gear which dropped on the ground. Though it is interesting because, I could have learned that same lesson in real life in a much worse way. That sort of sheds a positive light on it.",
+    "created_at": "2026-03-08T19:58:53.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1roeqsz/diablo_2_taught_me_about_the_nature_of_humanity/",
+    "score": 0,
+    "num_comments": 5,
+    "url": "https://www.reddit.com/r/gaming/comments/1roeqsz/diablo_2_taught_me_about_the_nature_of_humanity/",
+    "first_seen_at": "2026-03-08T21:21:11.853Z",
+    "last_seen_at": "2026-03-08T23:31:58.472Z",
+    "seen_count": 11,
+    "updated_at": "2026-03-08T23:31:58.472Z"
+  },
+  "features": {
+    "id": "1roeqsz",
+    "subreddit": "gaming",
+    "token_count": 109,
+    "sentence_count": 6,
+    "lexical_diversity": 0.6697247706422018,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 10,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 18.17,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1roeqsz",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.4,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.61,
+    "confidence_band": "high",
+    "reasons": [
+      "lower lexical diversity",
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:58.473Z",
+  "analysis_count": 11
+}

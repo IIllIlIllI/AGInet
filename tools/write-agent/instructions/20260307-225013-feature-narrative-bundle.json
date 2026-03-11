@@ -1,0 +1,66 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "packages/narratives/src"
+    },
+    {
+      "action": "mkdir",
+      "path": "packages/cluster/src"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/features/src/index.js",
+      "backup": true,
+      "content": "const CERTAINTY_WORDS = ['clearly', 'obviously', 'definitely', 'undoubtedly', 'everyone knows'];\nconst HEDGE_WORDS = ['maybe', 'perhaps', 'might', 'seems', 'likely'];\nconst EMPATHY_WORDS = ['i understand', 'that must be hard', 'it makes sense'];\nconst CONSENSUS_WORDS = ['everyone knows', 'nobody can trust', 'the whole thing', 'all sides', 'cannot trust'];\nconst TRANSITION_WORDS = ['however', 'therefore', 'moreover', 'meanwhile', 'first', 'second', 'finally', 'on the other hand'];\nconst FUNCTION_WORDS = ['the', 'and', 'but', 'or', 'if', 'then', 'because', 'that', 'which', 'to', 'of', 'in', 'a', 'an'];\nconst SCAFFOLD_PHRASES = ['it is important to consider', 'from another perspective', 'however it is worth noting', 'we should take a balanced view', 'consider all sides carefully'];\n\nfunction countMatches(text, patterns) {\n  const lower = text.toLowerCase();\n  return patterns.reduce((sum, p) => sum + (lower.includes(p) ? 1 : 0), 0);\n}\n\nfunction tokenize(text) {\n  return text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean);\n}\n\nfunction variance(values) {\n  if (!values.length) return 0;\n  const mean = values.reduce((a, b) => a + b, 0) / values.length;\n  const v = values.reduce((acc, x) => acc + Math.pow(x - mean, 2), 0) / values.length;\n  return Number(v.toFixed(2));\n}\n\nexport function extractContentFeatures(post) {\n  const text = `${post.title || ''} ${post.body || ''}`.trim();\n  const lower = text.toLowerCase();\n  const tokens = tokenize(text);\n  const unique = new Set(tokens);\n  const sentences = text.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean);\n  const sentenceLengths = sentences.map((s) => tokenize(s).length);\n  const functionWordCount = tokens.filter((t) => FUNCTION_WORDS.includes(t)).length;\n  const certainty = countMatches(text, CERTAINTY_WORDS);\n  const hedging = countMatches(text, HEDGE_WORDS);\n\n  return {\n    id: post.id,\n    subreddit: post.subreddit,\n    token_count: tokens.length,\n    sentence_count: sentences.length,\n    lexical_diversity: tokens.length ? Number((unique.size / tokens.length).toFixed(3)) : 0,\n    certainty_marker_count: certainty,\n    hedging_marker_count: hedging,\n    empathy_marker_count: countMatches(text, EMPATHY_WORDS),\n    consensus_marker_count: countMatches(text, CONSENSUS_WORDS),\n    transition_marker_count: countMatches(text, TRANSITION_WORDS),\n    rhetorical_scaffold_count: countMatches(text, SCAFFOLD_PHRASES),\n    self_reference_count: (text.match(/\\b(i|me|my|mine)\\b/gi) || []).length,\n    exclamation_count: (text.match(/!/g) || []).length,\n    question_count: (text.match(/\\?/g) || []).length,\n    mean_sentence_length: sentenceLengths.length ? Number((sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length).toFixed(2)) : 0,\n    sentence_length_variance: variance(sentenceLengths),\n    function_word_ratio: tokens.length ? Number((functionWordCount / tokens.length).toFixed(3)) : 0,\n    certainty_vs_hedge_ratio: hedging === 0 ? certainty : Number((certainty / hedging).toFixed(3)),\n    abstraction_hint: countMatches(text, ['system', 'structure', 'narrative', 'context', 'coordinated', 'manipulated', 'compromised', 'process', 'outcome', 'trust']),\n    normalized_text: lower\n  };\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/scoring/src/index.js",
+      "backup": true,
+      "content": "export function scoreContent(post, features) {\n  let synthetic = 0;\n  let steering = 0;\n  let coordination = 0;\n  const reasons = [];\n\n  if (features.lexical_diversity < 0.72) {\n    synthetic += 0.12;\n    reasons.push('lower lexical diversity');\n  }\n\n  if (features.mean_sentence_length > 12) {\n    synthetic += 0.1;\n    reasons.push('long polished sentences');\n  }\n\n  if (features.sentence_length_variance < 8 && features.sentence_count >= 2) {\n    synthetic += 0.12;\n    reasons.push('low sentence variation');\n  }\n\n  if (features.transition_marker_count > 0) {\n    synthetic += 0.08;\n    reasons.push('high discourse structure');\n  }\n\n  if (features.rhetorical_scaffold_count > 0) {\n    synthetic += 0.16;\n    steering += 0.08;\n    reasons.push('repeated rhetorical scaffolds');\n  }\n\n  if (features.certainty_marker_count > 0) {\n    steering += 0.2;\n    reasons.push('certainty markers');\n  }\n\n  if (features.consensus_marker_count > 0) {\n    steering += 0.25;\n    coordination += 0.18;\n    reasons.push('consensus framing');\n  }\n\n  if (features.abstraction_hint > 1) {\n    synthetic += 0.12;\n    steering += 0.12;\n    reasons.push('abstraction-heavy language');\n  }\n\n  if (features.function_word_ratio > 0.45) {\n    synthetic += 0.06;\n    reasons.push('high function-word ratio');\n  }\n\n  if (features.exclamation_count > 1) {\n    steering += 0.08;\n    reasons.push('elevated emotional punctuation');\n  }\n\n  synthetic = clamp(synthetic + 0.16);\n  steering = clamp(steering + 0.12);\n  coordination = clamp(coordination + 0.1);\n\n  const confidence = clamp(\n    0.22 +\n    (features.token_count > 12 ? 0.2 : 0) +\n    (features.sentence_count > 1 ? 0.08 : 0) +\n    (reasons.length * 0.07)\n  );\n\n  return {\n    id: post.id,\n    entity_type: 'content',\n    synthetic_language_likelihood: round2(synthetic),\n    narrative_steering_likelihood: round2(steering),\n    coordination_likelihood: round2(coordination),\n    confidence: round2(confidence),\n    confidence_band: band(confidence),\n    reasons: Array.from(new Set(reasons))\n  };\n}\n\nfunction clamp(n) {\n  return Math.max(0, Math.min(1, n));\n}\n\nfunction round2(n) {\n  return Math.round(n * 100) / 100;\n}\n\nfunction band(n) {\n  if (n < 0.2) return 'very_low';\n  if (n < 0.4) return 'low';\n  if (n < 0.6) return 'moderate';\n  if (n < 0.8) return 'high';\n  return 'very_high';\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/narratives/src/index.js",
+      "backup": false,
+      "content": "function tokenize(text) {\n  return String(text || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    .filter(Boolean);\n}\n\nfunction stopwords() {\n  return new Set(['the', 'and', 'but', 'or', 'if', 'then', 'because', 'that', 'which', 'to', 'of', 'in', 'a', 'an', 'is', 'are', 'it', 'this', 'we', 'they', 'you']);\n}\n\nfunction topKeywords(post, max = 8) {\n  const sw = stopwords();\n  const counts = new Map();\n  const tokens = tokenize(`${post.title || ''} ${post.body || ''}`);\n  for (const t of tokens) {\n    if (sw.has(t) || t.length < 4) continue;\n    counts.set(t, (counts.get(t) || 0) + 1);\n  }\n  return [...counts.entries()]\n    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))\n    .slice(0, max)\n    .map(([k]) => k);\n}\n\nfunction overlap(a, b) {\n  const A = new Set(a);\n  const B = new Set(b);\n  let count = 0;\n  for (const x of A) if (B.has(x)) count += 1;\n  return count;\n}\n\nexport function detectNarratives(posts) {\n  const enriched = posts.map((post) => ({\n    id: post.id,\n    subreddit: post.subreddit,\n    author: post.author,\n    keywords: topKeywords(post)\n  }));\n\n  const groups = [];\n  const used = new Set();\n\n  for (let i = 0; i < enriched.length; i += 1) {\n    if (used.has(enriched[i].id)) continue;\n\n    const seed = enriched[i];\n    const members = [seed];\n    used.add(seed.id);\n\n    for (let j = i + 1; j < enriched.length; j += 1) {\n      if (used.has(enriched[j].id)) continue;\n      const shared = overlap(seed.keywords, enriched[j].keywords);\n      if (shared >= 2) {\n        members.push(enriched[j]);\n        used.add(enriched[j].id);\n      }\n    }\n\n    if (members.length >= 2) {\n      const keywordCounts = new Map();\n      for (const m of members) {\n        for (const k of m.keywords) keywordCounts.set(k, (keywordCounts.get(k) || 0) + 1);\n      }\n\n      const top = [...keywordCounts.entries()]\n        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))\n        .slice(0, 5)\n        .map(([k]) => k);\n\n      groups.push({\n        id: `nar-${top.join('-').slice(0, 40) || seed.id}`,\n        label: top.join(' / '),\n        keywords: top,\n        post_ids: members.map((m) => m.id).sort(),\n        authors: Array.from(new Set(members.map((m) => m.author))).sort(),\n        subreddits: Array.from(new Set(members.map((m) => m.subreddit))).sort(),\n        count: members.length\n      });\n    }\n  }\n\n  return groups.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));\n}\n"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/cluster/src/index.js",
+      "backup": false,
+      "content": "import { detectNarratives } from '../../narratives/src/index.js';\n\nexport function detectClusters(posts, analyses) {\n  const narratives = detectNarratives(posts);\n  const scoreMap = new Map(analyses.map((a) => [a.id, a]));\n\n  return narratives.map((nar, index) => {\n    const items = nar.post_ids.map((id) => scoreMap.get(id)).filter(Boolean);\n    const avgSynthetic = avg(items.map((x) => x.score.synthetic_language_likelihood || 0));\n    const avgSteering = avg(items.map((x) => x.score.narrative_steering_likelihood || 0));\n    const avgCoordination = avg(items.map((x) => x.score.coordination_likelihood || 0));\n    const sharedAuthors = nar.authors.length;\n    const sharedSubs = nar.subreddits.length;\n    const suspicionRank = ((avgSynthetic + avgSteering + avgCoordination) / 3) + (sharedAuthors >= 2 ? 0.05 : 0) + (sharedSubs >= 2 ? 0.05 : 0);\n\n    return {\n      id: `clu-${index + 1}`,\n      narrative_id: nar.id,\n      label: nar.label,\n      keywords: nar.keywords,\n      post_ids: nar.post_ids,\n      authors: nar.authors,\n      subreddits: nar.subreddits,\n      size: nar.count,\n      average_synthetic_language_likelihood: round2(avgSynthetic),\n      average_narrative_steering_likelihood: round2(avgSteering),\n      average_coordination_likelihood: round2(avgCoordination),\n      suspicion_rank: round2(Math.min(1, suspicionRank))\n    };\n  }).sort((a, b) => b.suspicion_rank - a.suspicion_rank || b.size - a.size);\n}\n\nfunction avg(values) {\n  if (!values.length) return 0;\n  return values.reduce((a, b) => a + b, 0) / values.length;\n}\n\nfunction round2(n) {\n  return Math.round(n * 100) / 100;\n}\n"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "import \\{ listPosts, getPost, listAnalysis, getAnalysis \\} from '\\.\\./\\.\\./\\.\\./packages/storage/src/storage\\.js';",
+      "flags": "",
+      "replace": "import { listPosts, getPost, listAnalysis, getAnalysis } from '../../../packages/storage/src/storage.js';\nimport { detectNarratives } from '../../../packages/narratives/src/index.js';\nimport { detectClusters } from '../../../packages/cluster/src/index.js';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/summary'\\) \\{[\\s\\S]*?\\n  \\}\\n\\n  return json\\(res, 200, \\{",
+      "flags": "",
+      "replace": "if (url.pathname === '/summary') {\n    return json(res, 200, summarize(listAnalysis()));\n  }\n\n  if (url.pathname === '/narratives') {\n    return json(res, 200, detectNarratives(listPosts()));\n  }\n\n  if (parts[0] === 'narratives' && parts[1]) {\n    const item = detectNarratives(listPosts()).find((x) => x.id === parts[1]);\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  if (url.pathname === '/clusters') {\n    return json(res, 200, detectClusters(listPosts(), listAnalysis()));\n  }\n\n  if (parts[0] === 'clusters' && parts[1]) {\n    const item = detectClusters(listPosts(), listAnalysis()).find((x) => x.id === parts[1]);\n    return item ? json(res, 200, item) : notFound(res);\n  }\n\n  return json(res, 200, {"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "routes: \\['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary'\\]",
+      "flags": "",
+      "replace": "routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id']"
+    },
+    {
+      "action": "append_file",
+      "path": "README.md",
+      "backup": true,
+      "content": "\n## narrative and cluster routes\n\n- `/narratives` - grouped posts sharing similar keyword framing\n- `/narratives/:id` - one narrative group\n- `/clusters` - ranked suspicious cluster summaries\n- `/clusters/:id` - one cluster summary\n"
+    }
+  ]
+}

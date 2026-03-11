@@ -1,0 +1,49 @@
+{
+  "id": "1roe684",
+  "post": {
+    "id": "1roe684",
+    "subreddit": "gaming",
+    "author": "Defiant-Echidna-7400",
+    "title": "Is This Game Really Selling That Well?",
+    "body": "I mean, I like what I've seen of Pokopia, but has it really taken off like this? \n\nPokémon spin-offs rarely do well, so I'm surprised this one is an exception",
+    "created_at": "2026-03-08T19:37:13.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1roe684/is_this_game_really_selling_that_well/",
+    "score": 0,
+    "num_comments": 81,
+    "url": "https://i.redd.it/rfgflje3jvng1.jpeg",
+    "first_seen_at": "2026-03-08T21:21:11.854Z",
+    "last_seen_at": "2026-03-08T21:37:47.226Z",
+    "seen_count": 7,
+    "updated_at": "2026-03-08T21:37:47.226Z"
+  },
+  "features": {
+    "id": "1roe684",
+    "subreddit": "gaming",
+    "token_count": 39,
+    "sentence_count": 3,
+    "lexical_diversity": 0.8205128205128205,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 4,
+    "exclamation_count": 0,
+    "question_count": 2,
+    "mean_sentence_length": 13,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1roe684",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T21:37:47.227Z",
+  "analysis_count": 7
+}

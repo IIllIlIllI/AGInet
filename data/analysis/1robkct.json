@@ -1,0 +1,50 @@
+{
+  "id": "1robkct",
+  "post": {
+    "id": "1robkct",
+    "subreddit": "gaming",
+    "author": "D3V1LIZCO",
+    "title": "When did we normalize this?",
+    "body": "\nRecently i bought RE 3 (The remake) and i saw that they were selling Jill and Carlos's original outfits for 2 Dollars, Plus 5.35 for Everything else unlocked (Difficulty, Outfits , Guns).\nWhen did this shit get normalized in our community?\n\nI remember The Last of Us giving you extra outfits for completing the game on harder difficulties, Uncharted Did the same thing.\nDead Rising Gave you special weapons that you could use in future playthroughs for just getting the achievements\n\nYou have other vague examples, Like what ubisoft did with the original Assassins Creed Games in which you had to redeem the outfits from uplay via points that YOU gained by playing the games, i remember reedeming The Altaïr armour for Brotherhood feeling proud of the progress i made.\n\nDont get me wrong, There have been micro-transactions since the start of gaming, Take The Original Sims as an example, But now it feels like its in every single game i buy and it feels like im paying for half of the product.\n\n\n\n\n\n",
+    "created_at": "2026-03-08T18:00:05.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1robkct/when_did_we_normalize_this/",
+    "score": 0,
+    "num_comments": 135,
+    "url": "https://www.reddit.com/r/gaming/comments/1robkct/when_did_we_normalize_this/",
+    "first_seen_at": "2026-03-08T21:21:11.856Z",
+    "last_seen_at": "2026-03-08T23:31:58.479Z",
+    "seen_count": 11,
+    "updated_at": "2026-03-08T23:31:58.479Z"
+  },
+  "features": {
+    "id": "1robkct",
+    "subreddit": "gaming",
+    "token_count": 180,
+    "sentence_count": 7,
+    "lexical_diversity": 0.6888888888888889,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 7,
+    "exclamation_count": 0,
+    "question_count": 2,
+    "mean_sentence_length": 25.71,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1robkct",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.4,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.61,
+    "confidence_band": "high",
+    "reasons": [
+      "lower lexical diversity",
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:58.480Z",
+  "analysis_count": 11
+}

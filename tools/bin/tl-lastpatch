@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+DIR="$HOME/projects/truth-lens/tools/write-agent/instructions"
+
+LATEST="$(ls -1 "$DIR"/*.json 2>/dev/null | tail -n 1)"
+
+if [ -z "$LATEST" ]; then
+  echo "No instruction files found."
+  exit 1
+fi
+
+echo "$LATEST"

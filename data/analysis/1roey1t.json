@@ -1,0 +1,49 @@
+{
+  "id": "1roey1t",
+  "post": {
+    "id": "1roey1t",
+    "subreddit": "technology",
+    "author": "ubcstaffer123",
+    "title": "Teacher v chatbot: my journey into the classroom in the age of AI",
+    "body": "",
+    "created_at": "2026-03-08T20:06:18.000Z",
+    "permalink": "https://www.reddit.com/r/technology/comments/1roey1t/teacher_v_chatbot_my_journey_into_the_classroom/",
+    "score": 7,
+    "num_comments": 1,
+    "url": "https://www.theguardian.com/education/ng-interactive/2026/mar/03/cheating-machine-or-powerful-assistant-the-ai-anxieties-of-a-trainee-teacher",
+    "first_seen_at": "2026-03-08T21:21:11.228Z",
+    "last_seen_at": "2026-03-08T23:31:57.689Z",
+    "seen_count": 11,
+    "updated_at": "2026-03-08T23:31:57.689Z"
+  },
+  "features": {
+    "id": "1roey1t",
+    "subreddit": "technology",
+    "token_count": 13,
+    "sentence_count": 1,
+    "lexical_diversity": 0.9230769230769231,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 1,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 13,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1roey1t",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:57.691Z",
+  "analysis_count": 11
+}

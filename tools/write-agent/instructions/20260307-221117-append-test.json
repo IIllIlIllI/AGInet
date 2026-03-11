@@ -1,0 +1,10 @@
+{
+  "operations": [
+    {
+      "action": "write_file",
+      "path": "REPLACE_ME.txt",
+      "backup": true,
+      "content": "replace me\n"
+    }
+  ]
+}

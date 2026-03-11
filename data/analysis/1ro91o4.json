@@ -1,0 +1,49 @@
+{
+  "id": "1ro91o4",
+  "post": {
+    "id": "1ro91o4",
+    "subreddit": "gaming",
+    "author": "AnubisIncGaming",
+    "title": "Things you used to love but are now completely over in gaming?",
+    "body": "I personally am done with grinding MMOs, I just can’t anymore. I have no patience or energy for what’s required and the pay off is nonexistent for me. ",
+    "created_at": "2026-03-08T16:23:36.000Z",
+    "permalink": "https://www.reddit.com/r/gaming/comments/1ro91o4/things_you_used_to_love_but_are_now_completely/",
+    "score": 543,
+    "num_comments": 587,
+    "url": "https://www.reddit.com/r/gaming/comments/1ro91o4/things_you_used_to_love_but_are_now_completely/",
+    "first_seen_at": "2026-03-08T16:25:52.774Z",
+    "last_seen_at": "2026-03-08T23:31:58.484Z",
+    "seen_count": 8,
+    "updated_at": "2026-03-08T23:31:58.484Z"
+  },
+  "features": {
+    "id": "1ro91o4",
+    "subreddit": "gaming",
+    "token_count": 42,
+    "sentence_count": 3,
+    "lexical_diversity": 0.9285714285714286,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 4,
+    "exclamation_count": 0,
+    "question_count": 1,
+    "mean_sentence_length": 14,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1ro91o4",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:58.485Z",
+  "analysis_count": 8
+}

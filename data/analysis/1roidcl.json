@@ -1,0 +1,49 @@
+{
+  "id": "1roidcl",
+  "post": {
+    "id": "1roidcl",
+    "subreddit": "news",
+    "author": "jeetah",
+    "title": "Security lines at some US airports hit three hours as TSA absences rise",
+    "body": "",
+    "created_at": "2026-03-08T22:21:02.000Z",
+    "permalink": "https://www.reddit.com/r/news/comments/1roidcl/security_lines_at_some_us_airports_hit_three/",
+    "score": 1233,
+    "num_comments": 66,
+    "url": "https://www.reuters.com/world/us/security-lines-some-us-airports-hit-three-hours-tsa-absences-rise-2026-03-08/",
+    "first_seen_at": "2026-03-08T23:03:22.970Z",
+    "last_seen_at": "2026-03-08T23:31:58.110Z",
+    "seen_count": 4,
+    "updated_at": "2026-03-08T23:31:58.110Z"
+  },
+  "features": {
+    "id": "1roidcl",
+    "subreddit": "news",
+    "token_count": 13,
+    "sentence_count": 1,
+    "lexical_diversity": 1,
+    "certainty_marker_count": 0,
+    "hedging_marker_count": 0,
+    "empathy_marker_count": 0,
+    "consensus_marker_count": 0,
+    "self_reference_count": 0,
+    "exclamation_count": 0,
+    "question_count": 0,
+    "mean_sentence_length": 13,
+    "abstraction_hint": 0
+  },
+  "score": {
+    "id": "1roidcl",
+    "entity_type": "content",
+    "synthetic_language_likelihood": 0.28,
+    "narrative_steering_likelihood": 0.12,
+    "coordination_likelihood": 0.1,
+    "confidence": 0.53,
+    "confidence_band": "moderate",
+    "reasons": [
+      "long polished sentences"
+    ]
+  },
+  "analyzed_at": "2026-03-08T23:31:58.111Z",
+  "analysis_count": 4
+}

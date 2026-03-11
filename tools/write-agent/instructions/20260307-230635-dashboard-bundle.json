@@ -1,0 +1,52 @@
+{
+  "operations": [
+    {
+      "action": "mkdir",
+      "path": "packages/dashboard/src"
+    },
+    {
+      "action": "write_file",
+      "path": "packages/dashboard/src/index.js",
+      "backup": false,
+      "content": "function esc(value) {\n  return String(value ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction card(title, body) {\n  return `<section class=\"card\"><h2>${esc(title)}</h2>${body}</section>`;\n}\n\nfunction list(items) {\n  if (!items || !items.length) return '<p class=\"muted\">No items yet.</p>';\n  return `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;\n}\n\nexport function renderDashboard(data) {\n  const summary = data.summary || {};\n  const clusterFindings = (data.cluster_findings || []).slice(0, 8);\n  const narrativeFindings = (data.narrative_findings || []).slice(0, 8);\n  const baselines = (data.baselines || []).slice(0, 8);\n\n  const summaryHtml = `\n    <div class=\"grid cols-4\">\n      <div class=\"metric\"><div class=\"label\">Posts</div><div class=\"value\">${esc(summary.total_posts ?? 0)}</div></div>\n      <div class=\"metric\"><div class=\"label\">Avg Synthetic</div><div class=\"value\">${esc(summary.average_synthetic_language_likelihood ?? 0)}</div></div>\n      <div class=\"metric\"><div class=\"label\">Avg Steering</div><div class=\"value\">${esc(summary.average_narrative_steering_likelihood ?? 0)}</div></div>\n      <div class=\"metric\"><div class=\"label\">Avg Coordination</div><div class=\"value\">${esc(summary.average_coordination_likelihood ?? 0)}</div></div>\n    </div>\n  `;\n\n  const clustersHtml = list(clusterFindings.map((f) => {\n    const findings = (f.findings || []).slice(0, 3).map((x) => esc(x)).join(' • ');\n    return `<strong>${esc(f.label || f.id)}</strong><br><span>${esc(f.summary || '')}</span><br><span class=\"muted\">${findings}</span>`;\n  }));\n\n  const narrativesHtml = list(narrativeFindings.map((f) => {\n    const findings = (f.findings || []).slice(0, 3).map((x) => esc(x)).join(' • ');\n    return `<strong>${esc(f.label || f.id)}</strong><br><span>${esc(f.summary || '')}</span><br><span class=\"muted\">${findings}</span>`;\n  }));\n\n  const baselinesHtml = list(baselines.map((b) => {\n    const kws = (b.common_keywords || []).slice(0, 5).map((k) => esc(k.keyword)).join(', ');\n    return `<strong>r/${esc(b.subreddit)}</strong><br><span>posts=${esc(b.post_count)} synthetic=${esc(b.average_synthetic_language_likelihood)} steering=${esc(b.average_narrative_steering_likelihood)} coordination=${esc(b.average_coordination_likelihood)}</span><br><span class=\"muted\">keywords: ${kws}</span>`;\n  }));\n\n  const linksHtml = list([\n    '<a href=\"/health\">/health</a>',\n    '<a href=\"/summary\">/summary</a>',\n    '<a href=\"/findings\">/findings</a>',\n    '<a href=\"/findings/clusters\">/findings/clusters</a>',\n    '<a href=\"/findings/narratives\">/findings/narratives</a>',\n    '<a href=\"/baselines\">/baselines</a>',\n    '<a href=\"/spread\">/spread</a>',\n    '<a href=\"/clusters\">/clusters</a>',\n    '<a href=\"/narratives\">/narratives</a>'\n  ]);\n\n  return `<!doctype html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Truth Lens Dashboard</title>\n  <style>\n    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #0b1020; color: #e8ecf1; }\n    h1 { margin-top: 0; font-size: 28px; }\n    h2 { margin: 0 0 10px 0; font-size: 18px; }\n    .muted { color: #9aa4b2; }\n    .grid { display: grid; gap: 12px; }\n    .cols-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }\n    .card { background: #121a2b; border: 1px solid #25314a; border-radius: 14px; padding: 14px; margin-bottom: 14px; }\n    .metric { background: #0f1727; border: 1px solid #23304a; border-radius: 12px; padding: 12px; }\n    .label { font-size: 12px; color: #9aa4b2; }\n    .value { font-size: 24px; font-weight: 700; margin-top: 4px; }\n    ul { margin: 0; padding-left: 18px; }\n    li { margin-bottom: 10px; }\n    a { color: #8ec5ff; text-decoration: none; }\n  </style>\n</head>\n<body>\n  <h1>Truth Lens Dashboard</h1>\n  <p class=\"muted\">Local prototype dashboard for findings, baselines, narratives, and clusters.</p>\n  ${card('Summary', summaryHtml)}\n  ${card('Top Cluster Findings', clustersHtml)}\n  ${card('Top Narrative Findings', narrativesHtml)}\n  ${card('Subreddit Baselines', baselinesHtml)}\n  ${card('Routes', linksHtml)}\n</body>\n</html>`;\n}\n"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "import \\{ buildClusterFinding, buildNarrativeFinding, buildAllFindings \\} from '\\.\\./\\.\\./\\.\\./packages/findings/src/index\\.js';",
+      "flags": "",
+      "replace": "import { buildClusterFinding, buildNarrativeFinding, buildAllFindings } from '../../../packages/findings/src/index.js';\nimport { renderDashboard } from '../../../packages/dashboard/src/index.js';"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "function json\\(res, status, data\\) \\{\\n  res\\.writeHead\\(status, \\{ 'Content-Type': 'application/json' \\}\\);\\n  res\\.end\\(JSON\\.stringify\\(data, null, 2\\)\\);\\n\\}",
+      "flags": "",
+      "replace": "function json(res, status, data) {\n  res.writeHead(status, { 'Content-Type': 'application/json' });\n  res.end(JSON.stringify(data, null, 2));\n}\n\nfunction html(res, status, markup) {\n  res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' });\n  res.end(markup);\n}"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "if \\(url\\.pathname === '/findings/narratives'\\) \\{\\n    return json\\(res, 200, buildSpread\\(listPosts\\(\\)\\)\\.map\\(buildNarrativeFinding\\)\\);\\n  \\}",
+      "flags": "",
+      "replace": "if (url.pathname === '/findings/narratives') {\n    return json(res, 200, buildSpread(listPosts()).map(buildNarrativeFinding));\n  }\n\n  if (url.pathname === '/dashboard') {\n    const posts = listPosts();\n    const analyses = listAnalysis();\n    const baselines = buildBaselines(posts, analyses);\n    const clusters = detectClusters(posts, analyses).map((cluster) => ({\n      ...cluster,\n      baseline: compareClusterToBaselines(cluster, baselines)\n    }));\n    const spread = buildSpread(posts);\n    const findings = buildAllFindings(clusters, spread);\n    const summaryData = summarize(analyses);\n    return html(res, 200, renderDashboard({\n      summary: summaryData,\n      baselines,\n      cluster_findings: findings.cluster_findings,\n      narrative_findings: findings.narrative_findings\n    }));\n  }"
+    },
+    {
+      "action": "replace_regex",
+      "path": "apps/api/src/server.ts",
+      "backup": true,
+      "pattern": "routes: \\['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id', '/spread', '/spread/:id', '/timeline/:id', '/findings', '/findings/clusters', '/findings/cluster/:id', '/findings/narratives', '/findings/narrative/:id'\\]",
+      "flags": "",
+      "replace": "routes: ['/health', '/posts', '/posts/:id', '/analysis', '/analysis/:id', '/summary', '/baselines', '/baselines/:subreddit', '/narratives', '/narratives/:id', '/clusters', '/clusters/:id', '/spread', '/spread/:id', '/timeline/:id', '/findings', '/findings/clusters', '/findings/cluster/:id', '/findings/narratives', '/findings/narrative/:id', '/dashboard']"
+    },
+    {
+      "action": "append_file",
+      "path": "README.md",
+      "backup": true,
+      "content": "\n## dashboard route\n\n- `/dashboard` - local HTML dashboard with summary, findings, baselines, and links\n"
+    }
+  ]
+}

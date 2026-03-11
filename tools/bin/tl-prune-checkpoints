@@ -1,0 +1,100 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -e
+
+ROOT="$HOME/projects/truth-lens"
+CHECKPOINT_ROOT="$ROOT/checkpoints"
+
+KEEP_COUNT=""
+YES_MODE=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --yes)
+      YES_MODE="1"
+      ;;
+    *)
+      if [ -z "$KEEP_COUNT" ]; then
+        KEEP_COUNT="$arg"
+      fi
+      ;;
+  esac
+done
+
+if [ -z "$KEEP_COUNT" ]; then
+  echo "Usage:"
+  echo "  tl-prune-checkpoints <keep-count>"
+  echo "  tl-prune-checkpoints <keep-count> --yes"
+  exit 1
+fi
+
+case "$KEEP_COUNT" in
+  ''|*[!0-9]*)
+    echo "[error] keep-count must be a positive integer"
+    exit 1
+    ;;
+esac
+
+if [ "$KEEP_COUNT" -lt 0 ]; then
+  echo "[error] keep-count must be >= 0"
+  exit 1
+fi
+
+if [ ! -d "$CHECKPOINT_ROOT" ]; then
+  echo "No checkpoints directory found."
+  exit 0
+fi
+
+mapfile -t CHECKPOINTS < <(find "$CHECKPOINT_ROOT" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort -r)
+
+TOTAL="${#CHECKPOINTS[@]}"
+
+echo
+echo "=== Truth Lens Prune Checkpoints ==="
+echo "Total checkpoints: $TOTAL"
+echo "Keep newest: $KEEP_COUNT"
+echo
+
+if [ "$TOTAL" -le "$KEEP_COUNT" ]; then
+  echo "Nothing to prune."
+  exit 0
+fi
+
+TO_DELETE=()
+INDEX=0
+for name in "${CHECKPOINTS[@]}"; do
+  if [ "$INDEX" -ge "$KEEP_COUNT" ]; then
+    TO_DELETE+=("$name")
+  fi
+  INDEX=$((INDEX + 1))
+done
+
+echo "Would delete:"
+for name in "${TO_DELETE[@]}"; do
+  echo "  $name"
+done
+echo
+
+if [ -z "$YES_MODE" ]; then
+  printf "Proceed with deletion? [y/N]: "
+  read -r CONFIRM
+  if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+    echo "[cancelled]"
+    exit 0
+  fi
+fi
+
+for name in "${TO_DELETE[@]}"; do
+  TARGET="$CHECKPOINT_ROOT/$name"
+  case "$TARGET" in
+    "$CHECKPOINT_ROOT"/*)
+      rm -rf "$TARGET"
+      echo "[deleted] $TARGET"
+      ;;
+    *)
+      echo "[skip] refused unsafe path: $TARGET"
+      ;;
+  esac
+done
+
+echo
+echo "[done] prune complete"
