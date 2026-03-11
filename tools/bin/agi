@@ -10,6 +10,8 @@ AGInet CLI
 Usage:
   tools/bin/agi doctor
   tools/bin/agi run
+  tools/bin/agi observe
+  tools/bin/agi drift
   tools/bin/agi graph
   tools/bin/agi graph-out
   tools/bin/agi help
@@ -22,6 +24,12 @@ case "${1:-help}" in
     ;;
   run)
     PYTHONPATH="$ROOT" python -B -m sim.reference_sim
+    ;;
+  observe)
+    PYTHONPATH="$ROOT" python -B -m sim.observatory.run_logger
+    ;;
+  drift)
+    PYTHONPATH="$ROOT" python -B -m sim.observatory.drift_report
     ;;
   graph)
     PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer
