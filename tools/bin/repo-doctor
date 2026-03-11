@@ -1,0 +1,31 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+echo "=== AGINET REPO DOCTOR ==="
+
+ok() { echo "[ok] $1"; }
+warn() { echo "[warn] $1"; }
+
+[ -d sim ] && ok "sim directory present" || warn "sim directory missing"
+[ -f sim/__init__.py ] && ok "sim package initialized" || warn "sim/__init__.py missing"
+[ -d sim/core ] && ok "sim/core present" || warn "sim/core missing"
+[ -f sim/core/__init__.py ] && ok "sim/core package initialized" || warn "sim/core/__init__.py missing"
+
+[ -f sim/core/inference.py ] && ok "inference module present" || warn "inference module missing"
+[ -f sim/core/constraints.py ] && ok "constraints module present" || warn "constraints module missing"
+[ -f sim/core/fragility.py ] && ok "fragility module present" || warn "fragility module missing"
+[ -f sim/core/sovereignty.py ] && ok "sovereignty module present" || warn "sovereignty module missing"
+[ -f sim/core/claim_graph.py ] && ok "claim graph module present" || warn "claim graph module missing"
+[ -f sim/reference_sim.py ] && ok "reference sim present" || warn "reference sim missing"
+
+[ -f README.md ] && ok "README present" || warn "README missing"
+[ -d docs ] && ok "docs directory present" || warn "docs directory missing"
+
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  ok "git repo detected"
+else
+  warn "not a git repo"
+fi
+
+echo
+echo "Doctor complete."
