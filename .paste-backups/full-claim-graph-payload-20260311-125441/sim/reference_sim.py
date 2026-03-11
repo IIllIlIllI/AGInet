@@ -19,12 +19,12 @@ class SimResult:
     contamination_flag: bool
     claim_graph_summary: dict
     claim_graph_support: dict[str, float]
-    claim_graph_payload: dict
     graph_variant: str
     audit: list[str] = field(default_factory=list)
 
 
 def current_variant_key() -> int:
+    # Stable, observable variation by current UTC minute bucket.
     now = datetime.now(UTC)
     return now.minute % 3
 
@@ -161,34 +161,6 @@ def build_evidence_items(variant_name: str) -> list[Evidence]:
     return items
 
 
-def serialize_claim_graph(graph: ClaimGraph, hypothesis_ids: list[str]) -> dict:
-    return {
-        "claims": [
-            {
-                "claim_id": claim.claim_id,
-                "text": claim.text,
-                "hypothesis_id": claim.hypothesis_id,
-                "tags": claim.tags,
-            }
-            for claim in graph.claims.values()
-        ],
-        "edges": [
-            {
-                "source_claim_id": edge.source_claim_id,
-                "target_claim_id": edge.target_claim_id,
-                "relation": edge.relation,
-                "weight": edge.weight,
-            }
-            for edge in graph.edges
-        ],
-        "summary": graph.summary(),
-        "support_by_hypothesis": {
-            hid: round(graph.support_score_for_hypothesis(hid), 4)
-            for hid in hypothesis_ids
-        },
-    }
-
-
 def run_reference_sim() -> SimResult:
     audit: list[str] = []
 
@@ -223,7 +195,6 @@ def run_reference_sim() -> SimResult:
         hid: round(claim_graph.support_score_for_hypothesis(hid), 4)
         for hid in hypotheses.keys()
     }
-    graph_payload = serialize_claim_graph(claim_graph, list(hypotheses.keys()))
 
     audit.append(f"[variant] {variant_name}")
     audit.append(f"[posterior] {posteriors}")
@@ -243,7 +214,6 @@ def run_reference_sim() -> SimResult:
         contamination_flag=sovereignty.contamination_flag,
         claim_graph_summary=graph_summary,
         claim_graph_support=graph_support,
-        claim_graph_payload=graph_payload,
         graph_variant=variant_name,
         audit=audit,
     )

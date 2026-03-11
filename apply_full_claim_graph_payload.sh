@@ -1,3 +1,31 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="${1:-$(pwd)}"
+BACKUP_DIR="$ROOT/.paste-backups/full-claim-graph-payload-$(date +%Y%m%d-%H%M%S)"
+
+mkdir -p "$BACKUP_DIR"
+
+backup_file() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    mkdir -p "$BACKUP_DIR/$(dirname "${file#"$ROOT/"}")"
+    cp "$file" "$BACKUP_DIR/${file#"$ROOT/"}"
+    echo "[backup] ${file#"$ROOT/"}"
+  fi
+}
+
+write_file() {
+  local file="$1"
+  backup_file "$file"
+  mkdir -p "$(dirname "$file")"
+  cat > "$file"
+  echo "[write] ${file#"$ROOT/"}"
+}
+
+echo "[patch] saving full claim graph payload into AGInet reports"
+
+write_file "$ROOT/sim/reference_sim.py" <<'EOF'
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -289,3 +317,288 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+EOF
+
+write_file "$ROOT/sim/observatory/run_logger.py" <<'EOF'
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, is_dataclass
+from datetime import datetime, UTC
+from pathlib import Path
+
+from sim.reference_sim import run_reference_sim
+
+
+ROOT = Path.cwd()
+DATA_DIR = ROOT / "sim" / "data"
+RUN_DIR = DATA_DIR / "run_reports"
+LATEST_PATH = DATA_DIR / "latest_report.json"
+
+
+def normalize(obj):
+    if is_dataclass(obj):
+        return asdict(obj)
+    if isinstance(obj, dict):
+        return {k: normalize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [normalize(v) for v in obj]
+    return obj
+
+
+def build_report() -> dict:
+    result = run_reference_sim()
+    ts = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    payload = {
+        "run_id": f"run-{ts}",
+        "timestamp_utc": ts,
+        "result": normalize(result),
+    }
+    return payload
+
+
+def save_report(report: dict) -> Path:
+    RUN_DIR.mkdir(parents=True, exist_ok=True)
+    out = RUN_DIR / f"{report['run_id']}.json"
+    out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    LATEST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    LATEST_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return out
+
+
+def main() -> None:
+    report = build_report()
+    out = save_report(report)
+    print(f"[ok] saved run report: {out}")
+    print(f"[ok] updated latest report: {LATEST_PATH}")
+    graph_payload = report.get("result", {}).get("claim_graph_payload", {})
+    print(f"[ok] graph claims saved: {len(graph_payload.get('claims', []))}")
+    print(f"[ok] graph edges saved: {len(graph_payload.get('edges', []))}")
+
+
+if __name__ == "__main__":
+    main()
+EOF
+
+write_file "$ROOT/sim/tools/claim_graph_visualizer.py" <<'EOF'
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from sim.reference_sim import build_reference_claim_graph
+
+
+ROOT = Path.cwd()
+LATEST_REPORT = ROOT / "sim" / "data" / "latest_report.json"
+
+RELATION_ARROW = {
+    "supports": "-->",
+    "contradicts": "-.->",
+    "elaborates": "-->",
+    "speculative": "-.->",
+    "depends_on": "-->",
+}
+
+
+def sanitize(node_id: str) -> str:
+    return node_id.replace("-", "_").replace(" ", "_")
+
+
+def relation_label(relation: str, weight: float) -> str:
+    return f"{relation} ({weight:.1f})"
+
+
+def try_load_latest_report() -> dict | None:
+    if not LATEST_REPORT.exists():
+        return None
+    try:
+        return json.loads(LATEST_REPORT.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def graph_from_latest_report(report: dict) -> tuple[dict[str, dict], list[dict], dict]:
+    result = report.get("result", {})
+    payload = result.get("claim_graph_payload")
+
+    if payload:
+        claims = {
+            claim["claim_id"]: claim
+            for claim in payload.get("claims", [])
+        }
+        edges = list(payload.get("edges", []))
+        meta = {
+            "source": "latest_report",
+            "run_id": report.get("run_id"),
+            "timestamp_utc": report.get("timestamp_utc"),
+            "graph_variant": result.get("graph_variant", "unknown"),
+            "summary": payload.get("summary", result.get("claim_graph_summary", {})),
+            "support_by_hypothesis": payload.get(
+                "support_by_hypothesis",
+                result.get("claim_graph_support", {}),
+            ),
+        }
+        return claims, edges, meta
+
+    # backward-compatible fallback for older reports
+    variant = result.get("graph_variant", "unknown")
+    graph, variant_name = build_reference_claim_graph(
+        0 if variant == "baseline" else 1 if variant == "heightened_brigade" else 2
+    )
+
+    claims: dict[str, dict] = {}
+    edges: list[dict] = []
+
+    for claim in graph.claims.values():
+        claims[claim.claim_id] = {
+            "claim_id": claim.claim_id,
+            "text": claim.text,
+            "hypothesis_id": claim.hypothesis_id,
+            "tags": claim.tags,
+        }
+
+    for edge in graph.edges:
+        edges.append(
+            {
+                "source_claim_id": edge.source_claim_id,
+                "target_claim_id": edge.target_claim_id,
+                "relation": edge.relation,
+                "weight": edge.weight,
+            }
+        )
+
+    meta = {
+        "source": "latest_report_reconstructed",
+        "run_id": report.get("run_id"),
+        "timestamp_utc": report.get("timestamp_utc"),
+        "graph_variant": variant_name,
+        "summary": result.get("claim_graph_summary", {}),
+        "support_by_hypothesis": result.get("claim_graph_support", {}),
+    }
+    return claims, edges, meta
+
+
+def graph_from_reference() -> tuple[dict[str, dict], list[dict], dict]:
+    graph, variant_name = build_reference_claim_graph()
+    claims: dict[str, dict] = {}
+    edges: list[dict] = []
+
+    for claim in graph.claims.values():
+        claims[claim.claim_id] = {
+            "claim_id": claim.claim_id,
+            "text": claim.text,
+            "hypothesis_id": claim.hypothesis_id,
+            "tags": claim.tags,
+        }
+
+    for edge in graph.edges:
+        edges.append(
+            {
+                "source_claim_id": edge.source_claim_id,
+                "target_claim_id": edge.target_claim_id,
+                "relation": edge.relation,
+                "weight": edge.weight,
+            }
+        )
+
+    meta = {
+        "source": "reference_sim",
+        "run_id": None,
+        "timestamp_utc": None,
+        "graph_variant": variant_name,
+        "summary": graph.summary(),
+        "support_by_hypothesis": {
+            hid: graph.support_score_for_hypothesis(hid)
+            for hid in sorted({c.hypothesis_id for c in graph.claims.values() if c.hypothesis_id})
+        },
+    }
+    return claims, edges, meta
+
+
+def load_graph_payload() -> tuple[dict[str, dict], list[dict], dict]:
+    report = try_load_latest_report()
+    if report is not None:
+        return graph_from_latest_report(report)
+    return graph_from_reference()
+
+
+def build_mermaid() -> str:
+    claims, edges, meta = load_graph_payload()
+
+    lines: list[str] = []
+    lines.append("# Generated Claim Graph")
+    lines.append("")
+    lines.append(f"- **source**: {meta.get('source')}")
+    if meta.get("run_id"):
+        lines.append(f"- **run_id**: {meta.get('run_id')}")
+    if meta.get("timestamp_utc"):
+        lines.append(f"- **timestamp_utc**: {meta.get('timestamp_utc')}")
+    lines.append(f"- **graph_variant**: {meta.get('graph_variant')}")
+    lines.append("")
+    lines.append("```mermaid")
+    lines.append("flowchart TD")
+
+    for claim in claims.values():
+        nid = sanitize(claim["claim_id"])
+        label_parts = [claim["claim_id"], claim["text"].replace('"', "'")]
+        if claim.get("hypothesis_id"):
+            label_parts.append(f"[{claim['hypothesis_id']}]")
+        label = "\\n".join(label_parts)
+        lines.append(f'    {nid}["{label}"]')
+
+    for edge in edges:
+        src = sanitize(edge["source_claim_id"])
+        dst = sanitize(edge["target_claim_id"])
+        relation = edge["relation"]
+        weight = float(edge.get("weight", 1.0))
+        arrow = RELATION_ARROW.get(relation, "-->")
+        label = relation_label(relation, weight)
+        if arrow == "-->":
+            lines.append(f'    {src} -->|"{label}"| {dst}')
+        else:
+            lines.append(f'    {src} -.->|"{label}"| {dst}')
+
+    lines.append("```")
+    lines.append("")
+    lines.append("## Summary")
+    lines.append("")
+    summary = meta.get("summary", {})
+    for k, v in summary.items():
+        lines.append(f"- **{k}**: {v}")
+
+    lines.append("")
+    lines.append("## Support by Hypothesis")
+    lines.append("")
+    support = meta.get("support_by_hypothesis", {})
+    for hid in sorted(support.keys()):
+        score = support[hid]
+        if isinstance(score, float):
+            lines.append(f"- **{hid}**: {score:.4f}")
+        else:
+            lines.append(f"- **{hid}**: {score}")
+
+    return "\n".join(lines)
+
+
+def main() -> None:
+    print(build_mermaid())
+
+
+if __name__ == "__main__":
+    main()
+EOF
+
+echo
+echo "[patch] done"
+echo
+echo "Next steps:"
+echo "  tools/bin/agi observe"
+echo "  tools/bin/agi graph"
+echo "  tools/bin/agi graph-out"
+echo
+echo "Suggested commit:"
+echo '  git add sim/reference_sim.py sim/observatory/run_logger.py sim/tools/claim_graph_visualizer.py'
+echo '  git commit -m "save full AGInet claim graph payload in reports"'
+echo "  git pull --no-rebase origin main"
+echo "  git push"

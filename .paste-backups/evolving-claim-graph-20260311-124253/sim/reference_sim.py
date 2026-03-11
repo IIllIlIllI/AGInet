@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
 
 from sim.core.claim_graph import ClaimGraph
 from sim.core.constraints import Constraint, apply_constraints
@@ -19,20 +18,10 @@ class SimResult:
     contamination_flag: bool
     claim_graph_summary: dict
     claim_graph_support: dict[str, float]
-    claim_graph_payload: dict
-    graph_variant: str
     audit: list[str] = field(default_factory=list)
 
 
-def current_variant_key() -> int:
-    now = datetime.now(UTC)
-    return now.minute % 3
-
-
-def build_reference_claim_graph(variant: int | None = None) -> tuple[ClaimGraph, str]:
-    if variant is None:
-        variant = current_variant_key()
-
+def build_reference_claim_graph() -> ClaimGraph:
     graph = ClaimGraph()
 
     graph.add_claim(
@@ -65,35 +54,27 @@ def build_reference_claim_graph(variant: int | None = None) -> tuple[ClaimGraph,
     graph.add_edge("c_blog_analysis", "c_dataset_verified", "elaborates", weight=0.4)
     graph.add_edge("c_blog_analysis", "c_forum_burst", "speculative", weight=0.3)
 
-    variant_name = "baseline"
+    return graph
 
-    if variant == 1:
-        variant_name = "heightened_brigade"
-        graph.add_claim(
-            "c_social_echo",
-            "A social echo chamber reinforces brigaded interpretation.",
-            hypothesis_id="h_brigaded",
-            tags=["social", "echo"],
+
+def run_reference_sim() -> SimResult:
+    audit: list[str] = []
+
+    hypotheses = {
+        "h_verified": Hypothesis("h_verified", prior=0.45),
+        "h_brigaded": Hypothesis("h_brigaded", prior=0.30),
+        "h_uncertain": Hypothesis("h_uncertain", prior=0.25),
+    }
+
+    constraints = [
+        Constraint(
+            "no_impossible_verified_state",
+            "Verified state cannot be marked impossible.",
+            lambda h: not (h.hypothesis_id == "h_verified" and "impossible" in h.notes),
         )
-        graph.add_edge("c_social_echo", "c_forum_burst", "supports", weight=0.7)
-        graph.add_edge("c_social_echo", "c_dataset_verified", "contradicts", weight=0.5)
+    ]
 
-    elif variant == 2:
-        variant_name = "verification_reinforced"
-        graph.add_claim(
-            "c_secondary_verification",
-            "A secondary verification source reinforces the verified interpretation.",
-            hypothesis_id="h_verified",
-            tags=["verified", "secondary"],
-        )
-        graph.add_edge("c_secondary_verification", "c_dataset_verified", "supports", weight=0.8)
-        graph.add_edge("c_secondary_verification", "c_verified_vs_brigaded", "supports", weight=0.6)
-
-    return graph, variant_name
-
-
-def build_evidence_items(variant_name: str) -> list[Evidence]:
-    items = [
+    evidence_items = [
         Evidence(
             "e_dataset",
             weight=1.0,
@@ -129,86 +110,6 @@ def build_evidence_items(variant_name: str) -> list[Evidence]:
         ),
     ]
 
-    if variant_name == "heightened_brigade":
-        items.append(
-            Evidence(
-                "e_social_echo",
-                weight=0.7,
-                recency=1.0,
-                likelihood_ratio_by_hypothesis={
-                    "h_verified": 0.8,
-                    "h_brigaded": 2.2,
-                    "h_uncertain": 1.1,
-                },
-                tags=["brigade", "social"],
-            )
-        )
-    elif variant_name == "verification_reinforced":
-        items.append(
-            Evidence(
-                "e_secondary_verification",
-                weight=0.9,
-                recency=0.92,
-                likelihood_ratio_by_hypothesis={
-                    "h_verified": 2.4,
-                    "h_brigaded": 0.8,
-                    "h_uncertain": 1.0,
-                },
-                tags=["verified", "secondary"],
-            )
-        )
-
-    return items
-
-
-def serialize_claim_graph(graph: ClaimGraph, hypothesis_ids: list[str]) -> dict:
-    return {
-        "claims": [
-            {
-                "claim_id": claim.claim_id,
-                "text": claim.text,
-                "hypothesis_id": claim.hypothesis_id,
-                "tags": claim.tags,
-            }
-            for claim in graph.claims.values()
-        ],
-        "edges": [
-            {
-                "source_claim_id": edge.source_claim_id,
-                "target_claim_id": edge.target_claim_id,
-                "relation": edge.relation,
-                "weight": edge.weight,
-            }
-            for edge in graph.edges
-        ],
-        "summary": graph.summary(),
-        "support_by_hypothesis": {
-            hid: round(graph.support_score_for_hypothesis(hid), 4)
-            for hid in hypothesis_ids
-        },
-    }
-
-
-def run_reference_sim() -> SimResult:
-    audit: list[str] = []
-
-    hypotheses = {
-        "h_verified": Hypothesis("h_verified", prior=0.45),
-        "h_brigaded": Hypothesis("h_brigaded", prior=0.30),
-        "h_uncertain": Hypothesis("h_uncertain", prior=0.25),
-    }
-
-    constraints = [
-        Constraint(
-            "no_impossible_verified_state",
-            "Verified state cannot be marked impossible.",
-            lambda h: not (h.hypothesis_id == "h_verified" and "impossible" in h.notes),
-        )
-    ]
-
-    claim_graph, variant_name = build_reference_claim_graph()
-    evidence_items = build_evidence_items(variant_name)
-
     missing_penalty = 0.08
     latent_bonus = 0.03
 
@@ -218,14 +119,13 @@ def run_reference_sim() -> SimResult:
     residual_ambiguity = compute_residual_ambiguity(posteriors)
     sovereignty = compute_sovereignty_report(evidence_items, posteriors, fragility)
 
+    claim_graph = build_reference_claim_graph()
     graph_summary = claim_graph.summary()
     graph_support = {
         hid: round(claim_graph.support_score_for_hypothesis(hid), 4)
         for hid in hypotheses.keys()
     }
-    graph_payload = serialize_claim_graph(claim_graph, list(hypotheses.keys()))
 
-    audit.append(f"[variant] {variant_name}")
     audit.append(f"[posterior] {posteriors}")
     audit.append(f"[ambiguity] residual={residual_ambiguity}")
     audit.append(f"[sovereignty] pressure={sovereignty.pressure:.3f}")
@@ -243,8 +143,6 @@ def run_reference_sim() -> SimResult:
         contamination_flag=sovereignty.contamination_flag,
         claim_graph_summary=graph_summary,
         claim_graph_support=graph_support,
-        claim_graph_payload=graph_payload,
-        graph_variant=variant_name,
         audit=audit,
     )
 
@@ -253,8 +151,6 @@ def main() -> None:
     result = run_reference_sim()
 
     print("=== AGINET REFERENCE SIM ===")
-    print(f"\nGraph variant:\n  {result.graph_variant}")
-
     print("\nPosteriors:")
     for hid, p in sorted(result.posterior_by_hypothesis.items()):
         print(f"  {hid}: {p:.4f}")

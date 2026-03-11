@@ -28,14 +28,6 @@ def top_hypothesis(report: dict) -> tuple[str | None, float]:
     return hid, float(post[hid])
 
 
-def safe_get_graph_summary(report: dict) -> dict:
-    return report.get("result", {}).get("claim_graph_summary", {})
-
-
-def safe_get_graph_support(report: dict) -> dict:
-    return report.get("result", {}).get("claim_graph_support", {})
-
-
 def main() -> None:
     reports = load_reports()
     print("=== AGINET DRIFT REPORT ===")
@@ -53,13 +45,9 @@ def main() -> None:
     a_result = a.get("result", {})
     b_result = b.get("result", {})
 
-    a_graph = safe_get_graph_summary(a)
-    b_graph = safe_get_graph_summary(b)
-
     print(f"previous_run: {a['run_id']}")
     print(f"latest_run:   {b['run_id']}")
     print("")
-    print(f"graph_variant: {a_result.get('graph_variant')} -> {b_result.get('graph_variant')}")
     print(f"top_hypothesis: {a_top} -> {b_top}")
     print(f"top_score:      {a_score:.4f} -> {b_score:.4f}")
     print(
@@ -75,25 +63,10 @@ def main() -> None:
         f"{a_result.get('contamination_flag')} -> {b_result.get('contamination_flag')}"
     )
     print(
-        f"claim_count: {a_graph.get('claim_count')} -> {b_graph.get('claim_count')}"
+        f"claim_graph_contradiction_density: "
+        f"{a_result.get('claim_graph_summary', {}).get('contradiction_density')} -> "
+        f"{b_result.get('claim_graph_summary', {}).get('contradiction_density')}"
     )
-    print(
-        f"edge_count:  {a_graph.get('edge_count')} -> {b_graph.get('edge_count')}"
-    )
-    print(
-        "contradiction_density: "
-        f"{a_graph.get('contradiction_density')} -> {b_graph.get('contradiction_density')}"
-    )
-    print(
-        f"relation_counts: {a_graph.get('relation_counts')} -> {b_graph.get('relation_counts')}"
-    )
-
-    print("\nSupport by hypothesis:")
-    a_support = safe_get_graph_support(a)
-    b_support = safe_get_graph_support(b)
-    all_h = sorted(set(a_support.keys()) | set(b_support.keys()))
-    for hid in all_h:
-        print(f"  {hid}: {a_support.get(hid)} -> {b_support.get(hid)}")
 
 
 if __name__ == "__main__":

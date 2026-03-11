@@ -49,9 +49,6 @@ def main() -> None:
     out = save_report(report)
     print(f"[ok] saved run report: {out}")
     print(f"[ok] updated latest report: {LATEST_PATH}")
-    graph_payload = report.get("result", {}).get("claim_graph_payload", {})
-    print(f"[ok] graph claims saved: {len(graph_payload.get('claims', []))}")
-    print(f"[ok] graph edges saved: {len(graph_payload.get('edges', []))}")
 
 
 if __name__ == "__main__":

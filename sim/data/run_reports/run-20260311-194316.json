@@ -1,0 +1,62 @@
+{
+  "run_id": "run-20260311-194316",
+  "timestamp_utc": "20260311-194316",
+  "result": {
+    "posterior_by_hypothesis": {
+      "h_verified": 0.42689798852189964,
+      "h_brigaded": 0.3344267739271849,
+      "h_uncertain": 0.16815068831271823
+    },
+    "fragility_by_hypothesis": {
+      "h_verified": {
+        "e_dataset": 0.23116469918290328,
+        "e_forum_burst": 0.09503997368510808,
+        "e_analysis_blog": 0.04862670343649461,
+        "e_social_echo": 0.15707940048851965
+      },
+      "h_brigaded": {
+        "e_dataset": 0.10920396259639581,
+        "e_forum_burst": 0.14839064721975595,
+        "e_analysis_blog": 0.1297882851485292,
+        "e_social_echo": 0.07829852092657014
+      },
+      "h_uncertain": {
+        "e_dataset": 0.010524326491269803,
+        "e_forum_burst": 0.008159905120877775,
+        "e_analysis_blog": 0.049895540228171276,
+        "e_social_echo": 0.04878681409627825
+      }
+    },
+    "residual_ambiguity": 3,
+    "sovereignty_pressure": 0.33999999999999997,
+    "contamination_flag": false,
+    "claim_graph_summary": {
+      "claim_count": 5,
+      "edge_count": 7,
+      "relation_counts": {
+        "supports": 3,
+        "contradicts": 2,
+        "elaborates": 1,
+        "speculative": 1
+      },
+      "contradiction_density": 0.2857
+    },
+    "claim_graph_support": {
+      "h_verified": -0.5,
+      "h_brigaded": 0.0,
+      "h_uncertain": 0.0
+    },
+    "graph_variant": "heightened_brigade",
+    "audit": [
+      "[variant] heightened_brigade",
+      "[posterior] {'h_verified': 0.42689798852189964, 'h_brigaded': 0.3344267739271849, 'h_uncertain': 0.16815068831271823}",
+      "[ambiguity] residual=3",
+      "[sovereignty] pressure=0.340",
+      "[contamination] flag=False",
+      "[claim_graph] summary={'claim_count': 5, 'edge_count': 7, 'relation_counts': {'supports': 3, 'contradicts': 2, 'elaborates': 1, 'speculative': 1}, 'contradiction_density': 0.2857}",
+      "[claim_graph] support={'h_verified': -0.5, 'h_brigaded': 0.0, 'h_uncertain': 0.0}",
+      "[sovereignty_note] coercive or manipulative tag pressure detected",
+      "[sovereignty_note] multiple live hypotheses remain unresolved"
+    ]
+  }
+}

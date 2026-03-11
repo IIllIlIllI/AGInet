@@ -1,3 +1,31 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="${1:-$(pwd)}"
+BACKUP_DIR="$ROOT/.paste-backups/latest-report-graph-visualizer-$(date +%Y%m%d-%H%M%S)"
+
+mkdir -p "$BACKUP_DIR"
+
+backup_file() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    mkdir -p "$BACKUP_DIR/$(dirname "${file#"$ROOT/"}")"
+    cp "$file" "$BACKUP_DIR/${file#"$ROOT/"}"
+    echo "[backup] ${file#"$ROOT/"}"
+  fi
+}
+
+write_file() {
+  local file="$1"
+  backup_file "$file"
+  mkdir -p "$(dirname "$file")"
+  cat > "$file"
+  echo "[write] ${file#"$ROOT/"}"
+}
+
+echo "[patch] wiring claim graph visualizer to latest_report.json"
+
+write_file "$ROOT/sim/tools/claim_graph_visualizer.py" <<'EOF'
 from __future__ import annotations
 
 import json
@@ -37,35 +65,18 @@ def try_load_latest_report() -> dict | None:
 
 def graph_from_latest_report(report: dict) -> tuple[dict[str, dict], list[dict], dict]:
     result = report.get("result", {})
-    payload = result.get("claim_graph_payload")
-
-    if payload:
-        claims = {
-            claim["claim_id"]: claim
-            for claim in payload.get("claims", [])
-        }
-        edges = list(payload.get("edges", []))
-        meta = {
-            "source": "latest_report",
-            "run_id": report.get("run_id"),
-            "timestamp_utc": report.get("timestamp_utc"),
-            "graph_variant": result.get("graph_variant", "unknown"),
-            "summary": payload.get("summary", result.get("claim_graph_summary", {})),
-            "support_by_hypothesis": payload.get(
-                "support_by_hypothesis",
-                result.get("claim_graph_support", {}),
-            ),
-        }
-        return claims, edges, meta
-
-    # backward-compatible fallback for older reports
     variant = result.get("graph_variant", "unknown")
-    graph, variant_name = build_reference_claim_graph(
-        0 if variant == "baseline" else 1 if variant == "heightened_brigade" else 2
-    )
+    summary = result.get("claim_graph_summary", {})
 
     claims: dict[str, dict] = {}
     edges: list[dict] = []
+
+    # Reconstruct a graph shape from the known variant.
+    # This keeps visualization aligned with observed runs even before
+    # full edge-level graph serialization exists in latest_report.json.
+    graph, variant_name = build_reference_claim_graph(
+        0 if variant == "baseline" else 1 if variant == "heightened_brigade" else 2
+    )
 
     for claim in graph.claims.values():
         claims[claim.claim_id] = {
@@ -86,11 +97,11 @@ def graph_from_latest_report(report: dict) -> tuple[dict[str, dict], list[dict],
         )
 
     meta = {
-        "source": "latest_report_reconstructed",
+        "source": "latest_report",
         "run_id": report.get("run_id"),
         "timestamp_utc": report.get("timestamp_utc"),
         "graph_variant": variant_name,
-        "summary": result.get("claim_graph_summary", {}),
+        "summary": summary,
         "support_by_hypothesis": result.get("claim_graph_support", {}),
     }
     return claims, edges, meta
@@ -204,3 +215,18 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+EOF
+
+echo
+echo "[patch] done"
+echo
+echo "Next steps:"
+echo "  tools/bin/agi observe"
+echo "  tools/bin/agi graph"
+echo "  tools/bin/agi graph-out"
+echo
+echo "Suggested commit:"
+echo '  git add sim/tools/claim_graph_visualizer.py'
+echo '  git commit -m "make AGInet graph visualizer read latest report"'
+echo "  git pull --no-rebase origin main"
+echo "  git push"

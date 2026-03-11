@@ -37,35 +37,18 @@ def try_load_latest_report() -> dict | None:
 
 def graph_from_latest_report(report: dict) -> tuple[dict[str, dict], list[dict], dict]:
     result = report.get("result", {})
-    payload = result.get("claim_graph_payload")
-
-    if payload:
-        claims = {
-            claim["claim_id"]: claim
-            for claim in payload.get("claims", [])
-        }
-        edges = list(payload.get("edges", []))
-        meta = {
-            "source": "latest_report",
-            "run_id": report.get("run_id"),
-            "timestamp_utc": report.get("timestamp_utc"),
-            "graph_variant": result.get("graph_variant", "unknown"),
-            "summary": payload.get("summary", result.get("claim_graph_summary", {})),
-            "support_by_hypothesis": payload.get(
-                "support_by_hypothesis",
-                result.get("claim_graph_support", {}),
-            ),
-        }
-        return claims, edges, meta
-
-    # backward-compatible fallback for older reports
     variant = result.get("graph_variant", "unknown")
-    graph, variant_name = build_reference_claim_graph(
-        0 if variant == "baseline" else 1 if variant == "heightened_brigade" else 2
-    )
+    summary = result.get("claim_graph_summary", {})
 
     claims: dict[str, dict] = {}
     edges: list[dict] = []
+
+    # Reconstruct a graph shape from the known variant.
+    # This keeps visualization aligned with observed runs even before
+    # full edge-level graph serialization exists in latest_report.json.
+    graph, variant_name = build_reference_claim_graph(
+        0 if variant == "baseline" else 1 if variant == "heightened_brigade" else 2
+    )
 
     for claim in graph.claims.values():
         claims[claim.claim_id] = {
@@ -86,11 +69,11 @@ def graph_from_latest_report(report: dict) -> tuple[dict[str, dict], list[dict],
         )
 
     meta = {
-        "source": "latest_report_reconstructed",
+        "source": "latest_report",
         "run_id": report.get("run_id"),
         "timestamp_utc": report.get("timestamp_utc"),
         "graph_variant": variant_name,
-        "summary": result.get("claim_graph_summary", {}),
+        "summary": summary,
         "support_by_hypothesis": result.get("claim_graph_support", {}),
     }
     return claims, edges, meta

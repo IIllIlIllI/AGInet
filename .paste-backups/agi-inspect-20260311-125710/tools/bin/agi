@@ -12,7 +12,6 @@ Usage:
   tools/bin/agi run
   tools/bin/agi observe
   tools/bin/agi drift
-  tools/bin/agi inspect
   tools/bin/agi graph
   tools/bin/agi graph-out
   tools/bin/agi help
@@ -31,9 +30,6 @@ case "${1:-help}" in
     ;;
   drift)
     PYTHONPATH="$ROOT" python -B -m sim.observatory.drift_report
-    ;;
-  inspect)
-    PYTHONPATH="$ROOT" python -B -m sim.tools.inspect_latest_report
     ;;
   graph)
     PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer

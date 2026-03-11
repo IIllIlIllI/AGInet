@@ -1,0 +1,62 @@
+{
+  "run_id": "run-20260311-194422",
+  "timestamp_utc": "20260311-194422",
+  "result": {
+    "posterior_by_hypothesis": {
+      "h_verified": 0.7255232296478924,
+      "h_brigaded": 0.17771603674704334,
+      "h_uncertain": 0.17855502493884584
+    },
+    "fragility_by_hypothesis": {
+      "h_verified": {
+        "e_dataset": 0.262115905589935,
+        "e_forum_burst": 0.06931720382584028,
+        "e_analysis_blog": 0.037362407793974706,
+        "e_secondary_verification": 0.1415458406374731
+      },
+      "h_brigaded": {
+        "e_dataset": 0.07766655362750963,
+        "e_forum_burst": 0.08820690273559935,
+        "e_analysis_blog": 0.09377851961893546,
+        "e_secondary_verification": 0.07841221625357142
+      },
+      "h_uncertain": {
+        "e_dataset": 0.011044388264703497,
+        "e_forum_burst": 0.008561621595957608,
+        "e_analysis_blog": 0.0521266882222772,
+        "e_secondary_verification": 0.03838247747015064
+      }
+    },
+    "residual_ambiguity": 3,
+    "sovereignty_pressure": 0.3,
+    "contamination_flag": false,
+    "claim_graph_summary": {
+      "claim_count": 5,
+      "edge_count": 7,
+      "relation_counts": {
+        "supports": 4,
+        "contradicts": 1,
+        "elaborates": 1,
+        "speculative": 1
+      },
+      "contradiction_density": 0.1429
+    },
+    "claim_graph_support": {
+      "h_verified": 0.8,
+      "h_brigaded": -0.7,
+      "h_uncertain": 0.0
+    },
+    "graph_variant": "verification_reinforced",
+    "audit": [
+      "[variant] verification_reinforced",
+      "[posterior] {'h_verified': 0.7255232296478924, 'h_brigaded': 0.17771603674704334, 'h_uncertain': 0.17855502493884584}",
+      "[ambiguity] residual=3",
+      "[sovereignty] pressure=0.300",
+      "[contamination] flag=False",
+      "[claim_graph] summary={'claim_count': 5, 'edge_count': 7, 'relation_counts': {'supports': 4, 'contradicts': 1, 'elaborates': 1, 'speculative': 1}, 'contradiction_density': 0.1429}",
+      "[claim_graph] support={'h_verified': 0.8, 'h_brigaded': -0.7, 'h_uncertain': 0.0}",
+      "[sovereignty_note] coercive or manipulative tag pressure detected",
+      "[sovereignty_note] fragility concentration indicates brittle reasoning"
+    ]
+  }
+}

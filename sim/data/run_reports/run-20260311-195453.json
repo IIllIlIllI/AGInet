@@ -1,0 +1,146 @@
+{
+  "run_id": "run-20260311-195453",
+  "timestamp_utc": "20260311-195453",
+  "result": {
+    "posterior_by_hypothesis": {
+      "h_verified": 0.5839773890104193,
+      "h_brigaded": 0.25612825300061476,
+      "h_uncertain": 0.21693750240899648
+    },
+    "fragility_by_hypothesis": {
+      "h_verified": {
+        "e_dataset": 0.26955763786684556,
+        "e_forum_burst": 0.0889487437055323,
+        "e_analysis_blog": 0.046825268030374456
+      },
+      "h_brigaded": {
+        "e_dataset": 0.09720959994229611,
+        "e_forum_burst": 0.12071667430069238,
+        "e_analysis_blog": 0.11640963922353986
+      },
+      "h_uncertain": {
+        "e_dataset": 0.012828597440073392,
+        "e_forum_burst": 0.009938266767702458,
+        "e_analysis_blog": 0.0595602512123318
+      }
+    },
+    "residual_ambiguity": 3,
+    "sovereignty_pressure": 0.4,
+    "contamination_flag": false,
+    "claim_graph_summary": {
+      "claim_count": 4,
+      "edge_count": 5,
+      "relation_counts": {
+        "supports": 2,
+        "contradicts": 1,
+        "elaborates": 1,
+        "speculative": 1
+      },
+      "contradiction_density": 0.2
+    },
+    "claim_graph_support": {
+      "h_verified": 0.0,
+      "h_brigaded": -0.7,
+      "h_uncertain": 0.0
+    },
+    "claim_graph_payload": {
+      "claims": [
+        {
+          "claim_id": "c_dataset_verified",
+          "text": "A dataset-backed signal supports the verified interpretation.",
+          "hypothesis_id": "h_verified",
+          "tags": [
+            "verified",
+            "dataset"
+          ]
+        },
+        {
+          "claim_id": "c_forum_burst",
+          "text": "A forum burst suggests coordinated or brigaded amplification.",
+          "hypothesis_id": "h_brigaded",
+          "tags": [
+            "forum",
+            "brigade"
+          ]
+        },
+        {
+          "claim_id": "c_blog_analysis",
+          "text": "A derivative analysis blog offers mixed support and interpretation.",
+          "hypothesis_id": "h_uncertain",
+          "tags": [
+            "derivative"
+          ]
+        },
+        {
+          "claim_id": "c_verified_vs_brigaded",
+          "text": "Verified and brigaded interpretations are in tension.",
+          "hypothesis_id": null,
+          "tags": [
+            "meta"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "source_claim_id": "c_dataset_verified",
+          "target_claim_id": "c_verified_vs_brigaded",
+          "relation": "supports",
+          "weight": 0.9
+        },
+        {
+          "source_claim_id": "c_forum_burst",
+          "target_claim_id": "c_verified_vs_brigaded",
+          "relation": "supports",
+          "weight": 0.8
+        },
+        {
+          "source_claim_id": "c_dataset_verified",
+          "target_claim_id": "c_forum_burst",
+          "relation": "contradicts",
+          "weight": 0.7
+        },
+        {
+          "source_claim_id": "c_blog_analysis",
+          "target_claim_id": "c_dataset_verified",
+          "relation": "elaborates",
+          "weight": 0.4
+        },
+        {
+          "source_claim_id": "c_blog_analysis",
+          "target_claim_id": "c_forum_burst",
+          "relation": "speculative",
+          "weight": 0.3
+        }
+      ],
+      "summary": {
+        "claim_count": 4,
+        "edge_count": 5,
+        "relation_counts": {
+          "supports": 2,
+          "contradicts": 1,
+          "elaborates": 1,
+          "speculative": 1
+        },
+        "contradiction_density": 0.2
+      },
+      "support_by_hypothesis": {
+        "h_verified": 0.0,
+        "h_brigaded": -0.7,
+        "h_uncertain": 0.0
+      }
+    },
+    "graph_variant": "baseline",
+    "audit": [
+      "[variant] baseline",
+      "[posterior] {'h_verified': 0.5839773890104193, 'h_brigaded': 0.25612825300061476, 'h_uncertain': 0.21693750240899648}",
+      "[ambiguity] residual=3",
+      "[sovereignty] pressure=0.400",
+      "[contamination] flag=False",
+      "[claim_graph] summary={'claim_count': 4, 'edge_count': 5, 'relation_counts': {'supports': 2, 'contradicts': 1, 'elaborates': 1, 'speculative': 1}, 'contradiction_density': 0.2}",
+      "[claim_graph] support={'h_verified': 0.0, 'h_brigaded': -0.7, 'h_uncertain': 0.0}",
+      "[sovereignty_note] coercive or manipulative tag pressure detected",
+      "[sovereignty_note] fragility concentration indicates brittle reasoning",
+      "[sovereignty_note] multiple live hypotheses remain unresolved"
+    ]
+  }
+}
