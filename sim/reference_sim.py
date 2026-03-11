@@ -1,32 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from math import isfinite
-from typing import Callable
 
-
-@dataclass
-class Hypothesis:
-    hypothesis_id: str
-    prior: float
-    allowed: bool = True
-    notes: list[str] = field(default_factory=list)
-
-
-@dataclass
-class Evidence:
-    evidence_id: str
-    weight: float
-    recency: float
-    likelihood_ratio_by_hypothesis: dict[str, float]
-    tags: list[str] = field(default_factory=list)
-
-
-@dataclass
-class Constraint:
-    constraint_id: str
-    description: str
-    fn: Callable[[Hypothesis], bool]
+from sim.core.constraints import Constraint, apply_constraints
+from sim.core.fragility import compute_fragility
+from sim.core.inference import Evidence, Hypothesis, compute_posteriors, compute_residual_ambiguity
+from sim.core.sovereignty import compute_sovereignty_report
 
 
 @dataclass
@@ -36,120 +15,7 @@ class SimResult:
     residual_ambiguity: int
     sovereignty_pressure: float
     contamination_flag: bool
-    audit: list[str]
-
-
-DOMINATION_CAP = 8.0
-CONTAMINATION_THRESHOLD = 0.62
-
-
-def prior_to_odds(p: float) -> float:
-    p = min(max(p, 1e-6), 1 - 1e-6)
-    return p / (1 - p)
-
-
-def odds_to_prob(o: float) -> float:
-    if not isfinite(o):
-        return 1.0
-    return o / (1 + o)
-
-
-def apply_constraints(
-    hypotheses: dict[str, Hypothesis],
-    constraints: list[Constraint],
-    audit: list[str],
-) -> None:
-    for h in hypotheses.values():
-        for c in constraints:
-            if not c.fn(h):
-                h.allowed = False
-                h.notes.append(f"violated constraint: {c.constraint_id}")
-                audit.append(f"[constraint] {h.hypothesis_id} invalidated by {c.constraint_id}")
-                break
-
-
-def effective_lr(weight: float, recency: float, raw_lr: float) -> float:
-    return min(weight * recency * raw_lr, DOMINATION_CAP)
-
-
-def posterior_for_hypothesis(
-    h: Hypothesis,
-    evidence_items: list[Evidence],
-    missing_penalty: float,
-    latent_bonus: float,
-) -> float:
-    if not h.allowed:
-        return 0.0
-
-    odds = prior_to_odds(h.prior)
-    for e in evidence_items:
-        raw_lr = e.likelihood_ratio_by_hypothesis.get(h.hypothesis_id, 1.0)
-        lr = effective_lr(e.weight, e.recency, raw_lr)
-        lr = lr * (1 - missing_penalty) * (1 + latent_bonus)
-        odds *= max(lr, 1e-6)
-
-    return odds_to_prob(odds)
-
-
-def compute_posteriors(
-    hypotheses: dict[str, Hypothesis],
-    evidence_items: list[Evidence],
-    missing_penalty: float,
-    latent_bonus: float,
-) -> dict[str, float]:
-    return {
-        h.hypothesis_id: posterior_for_hypothesis(h, evidence_items, missing_penalty, latent_bonus)
-        for h in hypotheses.values()
-    }
-
-
-def compute_fragility(
-    hypotheses: dict[str, Hypothesis],
-    evidence_items: list[Evidence],
-    missing_penalty: float,
-    latent_bonus: float,
-) -> dict[str, dict[str, float]]:
-    baseline = compute_posteriors(hypotheses, evidence_items, missing_penalty, latent_bonus)
-    out: dict[str, dict[str, float]] = {}
-
-    for h in hypotheses.values():
-        by_evidence: dict[str, float] = {}
-        for i, e in enumerate(evidence_items):
-            reduced = evidence_items[:i] + evidence_items[i + 1 :]
-            reduced_post = compute_posteriors(hypotheses, reduced, missing_penalty, latent_bonus)
-            by_evidence[e.evidence_id] = abs(
-                baseline[h.hypothesis_id] - reduced_post[h.hypothesis_id]
-            )
-        out[h.hypothesis_id] = by_evidence
-
-    return out
-
-
-def compute_residual_ambiguity(posteriors: dict[str, float], threshold: float = 0.15) -> int:
-    return sum(1 for p in posteriors.values() if p >= threshold)
-
-
-def compute_sovereignty_pressure(
-    evidence_items: list[Evidence],
-    posteriors: dict[str, float],
-    fragility: dict[str, dict[str, float]],
-) -> float:
-    coercive_tags = {"propaganda", "dog_whistle", "brigade", "manipulative"}
-    anomaly_pressure = sum(
-        0.12 for e in evidence_items if any(tag in coercive_tags for tag in e.tags)
-    )
-
-    concentration_pressure = 0.0
-    for values in fragility.values():
-        if not values:
-            continue
-        max_fragility = max(values.values())
-        if max_fragility > 0.25:
-            concentration_pressure += 0.18
-
-    ambiguity_pressure = 0.10 if compute_residual_ambiguity(posteriors, threshold=0.20) > 1 else 0.0
-    pressure = anomaly_pressure + concentration_pressure + ambiguity_pressure
-    return min(pressure, 1.0)
+    audit: list[str] = field(default_factory=list)
 
 
 def run_reference_sim() -> SimResult:
@@ -212,20 +78,21 @@ def run_reference_sim() -> SimResult:
     posteriors = compute_posteriors(hypotheses, evidence_items, missing_penalty, latent_bonus)
     fragility = compute_fragility(hypotheses, evidence_items, missing_penalty, latent_bonus)
     residual_ambiguity = compute_residual_ambiguity(posteriors)
-    sovereignty_pressure = compute_sovereignty_pressure(evidence_items, posteriors, fragility)
-    contamination_flag = sovereignty_pressure > CONTAMINATION_THRESHOLD
+    sovereignty = compute_sovereignty_report(evidence_items, posteriors, fragility)
 
     audit.append(f"[posterior] {posteriors}")
     audit.append(f"[ambiguity] residual={residual_ambiguity}")
-    audit.append(f"[sovereignty] pressure={sovereignty_pressure:.3f}")
-    audit.append(f"[contamination] flag={contamination_flag}")
+    audit.append(f"[sovereignty] pressure={sovereignty.pressure:.3f}")
+    audit.append(f"[contamination] flag={sovereignty.contamination_flag}")
+    for note in sovereignty.notes:
+        audit.append(f"[sovereignty_note] {note}")
 
     return SimResult(
         posterior_by_hypothesis=posteriors,
         fragility_by_hypothesis=fragility,
         residual_ambiguity=residual_ambiguity,
-        sovereignty_pressure=sovereignty_pressure,
-        contamination_flag=contamination_flag,
+        sovereignty_pressure=sovereignty.pressure,
+        contamination_flag=sovereignty.contamination_flag,
         audit=audit,
     )
 
