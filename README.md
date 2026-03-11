@@ -369,6 +369,4 @@ Vision
 
 The internet was built for document retrieval.
 
-AGInet explores infrastructure for truth discovery in adversarial information environments. EOF
-
-echo "[write] README.md refreshed" echo echo "Next steps:" echo "  git add README.md" echo '  git commit -m "refresh README for AGInet"' echo "  git push"
+AGInet explores infrastructure for truth discovery in adversarial information environments.
