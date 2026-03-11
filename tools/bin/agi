@@ -1,0 +1,36 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+usage() {
+  cat <<'TXT'
+AGInet CLI
+
+Usage:
+  tools/bin/agi doctor
+  tools/bin/agi run
+  tools/bin/agi graph
+  tools/bin/agi graph-out
+  tools/bin/agi help
+TXT
+}
+
+case "${1:-help}" in
+  doctor)
+    bash "$ROOT/tools/bin/repo-doctor"
+    ;;
+  run)
+    PYTHONPATH="$ROOT" python -B -m sim.reference_sim
+    ;;
+  graph)
+    PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer
+    ;;
+  graph-out)
+    PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer > "$ROOT/docs/generated-claim-graph.md"
+    echo "[ok] wrote docs/generated-claim-graph.md"
+    ;;
+  help|*)
+    usage
+    ;;
+esac

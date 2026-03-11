@@ -1,0 +1,4 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PYTHONPATH="$ROOT" python -B -m sim.tools.claim_graph_visualizer "$@"
